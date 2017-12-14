@@ -1461,7 +1461,7 @@ class Users():
         df = df[df['stkeffect'] > 0]
         basic_stk = pd.read_csv("datas/basic.csv")
         basic_stk = basic_stk.loc[:, ["code", "timeToMarket"]]
-        stocks_f = open(u"次新股.txt")
+        stocks_f = open(u"datas/次新股.txt")
         stocks = stocks_f.read().split(" ")[:-1]
         for j in range(len(stocks)):
             stocks[j] = int(stocks[j])
@@ -1693,7 +1693,7 @@ class Users():
     def get_ZJLQD(self, custid):
         df = self.get_logdata(custid)
         df = df.dropna(how='any', axis=0)
-        BS_list = pd.read_csv("BS_list.csv")
+        BS_list = pd.read_csv("datas/BS_list.csv")
         res_al = []
         dataB = df[df["stkeffect"] > 0.00]
         dataS = df[df["stkeffect"] < 0.00]

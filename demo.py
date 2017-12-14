@@ -25,9 +25,7 @@ if __name__ == '__main__':
     st = time.time()
     i = 0
     for custid in ids:
-        custid = 109023075
-
-        users.logasset = users.get_CXPH(custid)
+        users.get_logdata(custid)
         if len(users.logasset) < log_num:
             continue
         '''users.abnormals_l(custid)
