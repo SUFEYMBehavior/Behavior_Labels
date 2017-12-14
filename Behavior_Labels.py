@@ -65,12 +65,14 @@ class Users():
     def decay_divide(self, cal_num, cal_all):
         if cal_all == 0:
             return -1
-        thre = self.threshold
+        else:
+            return cal_num/cal_all
+        '''thre = self.threshold
         p = cal_num/cal_all
         if cal_all >= thre:
             return p
         else:
-            return p * math.sqrt(cal_all/thre)
+            return p * math.sqrt(cal_all/thre)'''
     #
     def get_funddata(self, custid):
 
