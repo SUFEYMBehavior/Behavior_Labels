@@ -5,8 +5,6 @@ import pickle
 from utility import *
 import numpy as np
 import time
-import os
-from collections import OrderedDict
 
 class Users():
     def __init__(self, q=0.5, r=0.5, δ=1e-4,database='db_0901', endtime='20170915', threshold=20, fromcsv=False):
