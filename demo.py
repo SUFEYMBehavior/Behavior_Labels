@@ -5,7 +5,7 @@ if __name__ == '__main__':
     database = 'Yichuang'
     log_num = 1
     file = pd.read_excel('ID.xls')
-    ids = [156074129,
+    #ids = [156074129,
             156072805,
             156070640,
             156069132,
