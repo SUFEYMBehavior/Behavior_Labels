@@ -26,8 +26,8 @@ class Users():
         self.fromcsv = fromcsv
         self.threshold = threshold
         self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
-        custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
-        self.custids = set(custids_df['custid'])
+        #custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
+        #self.custids = set(custids_df['custid'])
         self.blacklist = set('204001')
         '''self.dict_keys = ['客户号',
             '持仓概念偏好',

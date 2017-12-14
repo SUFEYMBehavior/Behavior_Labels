@@ -3,8 +3,8 @@ import datetime
 import time
 import math
 import pandas as pd
-import talib
-import pymssql
+#import talib
+#import pymssql
 import tushare as ts
 from functools import wraps
 
