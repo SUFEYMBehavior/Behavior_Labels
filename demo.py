@@ -5,7 +5,8 @@ if __name__ == '__main__':
     database = 'Yichuang'
     log_num = 1
     file = pd.read_excel('ID.xls')
-    #ids = [156074129,
+    print(1)
+    '''ids = [156074129,
             156072805,
             156070640,
             156069132,
@@ -14,7 +15,7 @@ if __name__ == '__main__':
             156062079,
             151002416,
             109023075,
-            108052368]
+            108052368]'''
 
 
     users = Users(database=database, endtime='20171026', fromcsv=True)
