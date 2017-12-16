@@ -24,8 +24,9 @@ class Users():
         self.fromcsv = fromcsv
         self.threshold = threshold
         self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
-        #custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
-        #self.custids = set(custids_df['custid'])
+        if self.fromcsv == True:
+            custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
+            self.custids = set(custids_df['custid'])
         self.blacklist = set('204001')
         '''self.dict_keys = ['客户号',
             '持仓概念偏好',
@@ -78,7 +79,7 @@ class Users():
             return self.fundasset
         if self.fromcsv:
             df = pd.read_csv('test/fundasset.csv')
-            fundasset = df[df['custid'] == custid]
+            fundasset = df[df['custid'] == int(custid)]
         else:
             log = self.ms.ExecQuery("select distinct custid, marketvalue, busi_date, fundbal, fundlastbal from tcl_fundasset "
                                    "where custid = %s"
@@ -96,11 +97,11 @@ class Users():
             return self.logasset
         if self.fromcsv:
             df = pd.read_csv('test/logasset.csv')
-            logasset = df[df['custid'] == custid]
+            logasset = df[df['custid'] == int(custid)]
         else:
             log = self.ms.ExecQuery("select distinct custid, stkcode, busi_date, matchqty, bsflag, stkeffect, stkname,"
                                     "matchprice, matchamt, orderdate, ordertime, cleardate, market from tcl_logasset "
-                                    "where matchamt > 0 and matchqty > 0 and busi_date != 0 and custid = %s"
+                                    "where matchamt > 0 and matchqty > 0 and busi_date != 0 and custid = %s "
                                     "order by busi_date ASC " % str(custid))
             logasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'matchqty', 'bsflag', 'stkeffect', 'stkname',
                                                   'matchprice', 'matchamt', 'orderdate', 'ordertime', 'cleardate',
@@ -116,11 +117,11 @@ class Users():
             return self.stkasset
         if self.fromcsv:
             df = pd.read_csv('test/stkasset.csv')
-            stkasset = df[df['custid'] == custid]
+            stkasset = df[df['custid'] == int(custid)]
         else:
             log = self.ms.ExecQuery(
                 "select distinct custid, stkcode, busi_date, stkbal, stklastbal from tcl_stkasset "
-                "where custid = %s"
+                "where custid = %s "
                 "order by busi_date ASC " % str(custid))
             stkasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'stkbal', 'stklastbal'])
         self.stkcustid = custid
@@ -175,7 +176,7 @@ class Users():
         att = self.get_ZJLQD(custid)
         hsr = self.high_shares_l(custid)
         values = [custid, self.abnormals_l(custid),  self.hold_concept_var(custid), self.hold_var(custid), self.holding_float(custid),
-                  self.holdings(custid, self.ed), self.limit_perference(custid), self.Q*hsr['Q']+self.R*hsr['R'], zyl, zsl,
+                  self.holdings(custid, self.ed), self.limit_perference(custid), hsr, zyl, zsl,
                   kli[0], kli[1], kli[2], kli[3], kli[4], kli[5],
                   dl['DB'], dl['DS'], dl['WB'], dl['WS'], dl['MB'], dl['MS'],
                   jt['1B'], jt['1S'], jt['2B'], jt['2S'], jt['3B'], jt['3S'], jt['4B'], jt['4S'], jt['5B'], jt['5S'],
@@ -215,8 +216,11 @@ class Users():
         flag = [True if x > spl else False for x in m]
         user['flag'] = flag
         dic = calculate(user, label='flag')
-        abl = dic.iloc[0]
-        return self.Q * abl['Q'] + self.R * abl['R']
+        if dic.shape[0] == 0:
+            return -1
+        else:
+            abl = dic.iloc[0]
+            return self.Q * abl['Q'] + self.R * abl['R']
 
     #持仓概念集中度
     def hold_concept_var(self, custid, path='datas/industry.csv'):
@@ -340,7 +344,6 @@ class Users():
             return -1
         else:
             return times/nums
-
     
     def limit_perference(self, custid, time_range=1):
         custids = [0, 0]
@@ -370,7 +373,6 @@ class Users():
                     cal_num += 1
                 custids = [cal_num, cal_all]
         return self.decay_divide(custids[0], custids[1])
-
     
     def high_shares_l(self, custid, path='datas/shares.csv', share_limit=5):
         shr = pd.read_csv(path)
@@ -391,7 +393,11 @@ class Users():
 
         user['flag'] = flag
         dic = calculate(user, 'flag')
-        return dic.iloc[0]
+        if dic.shape[0] == 0:
+            return -1
+        else:
+            hsr = dic.iloc[0]
+            return self.Q * hsr['Q'] + self.R * hsr['R']
 
     def calculate_the_means_and_var(self, dict_name, col_number):
         nlist = []
@@ -934,9 +940,9 @@ class Users():
             mr_zqdm_set = set()
             mc_syl = float(mc_line['syl'])
             mc_cjrq = str(mc_line['cleardate'])
-            if cjrq == '0':
+            if mc_cjrq == '0':
                 continue
-            today_date = time.strptime(cjrq, "%Y%m%d")
+            today_date = time.strptime(mc_cjrq, "%Y%m%d")
             today_date = datetime.datetime(today_date[0], today_date[1], today_date[2])
             ntime = today_date - datetime.timedelta(days=-2)
             mr_string = ntime.strftime("%Y%m%d")
@@ -949,7 +955,14 @@ class Users():
                     mr_zqdm_set.add(mr_zqdm)
                 mr_zqdm_list = list(mr_zqdm_set)
                 mc_mr_zqdm_df = mc_df[(mc_df['stkcode'].isin(mr_zqdm_list)) & (mc_df['orderdate'] > mr_string)]  # 不严谨，有点问题
-                mc_mr_syl = mc_mr_zqdm_df['syl'].mean()
+                weights = []
+                for _, mc in mc_mr_zqdm_df.iterrows():
+                    time_mc =  time.strptime(mc['orderdate'], "%Y%m%d")
+                    time_mc = datetime.datetime(time_mc[0], time_mc[1], time_mc[2])
+                    weights.append(1/((time_mc - today_date).days**2))
+                weight = np.array(weights)
+                weight = weight / np.sum(weight)
+                mc_mr_syl = np.dot(mc_mr_zqdm_df['syl'], weight)
                 if mc_mr_syl < mc_syl: gdzx_times = gdzx_times + 1
 
         return self.decay_divide(gdzx_times, mc_times)
@@ -1023,7 +1036,6 @@ class Users():
         return phwt_dict
 
     # 新股情况
-
     def get_XGQK(self, custid):
         df = self.get_logdata(custid)
         '''datas = pd.read_excel(self.file)
@@ -1043,7 +1055,6 @@ class Users():
             lucky = self.decay_divide(suc, all_times)
             each_kh["lucky"] = lucky
         return each_kh['lucky']
-
     # 动量策略
     '''def get_DLCL(self, custid, path='datas/industry.csv'):
         user = self.get_logdata(custid)
@@ -1261,7 +1272,6 @@ class Users():
         return res.iloc[0]
 
     # 计算全体新股偏好
-    
     def get_XG_dict(self, sta=False):
         res_E = pickle.load(open('dict/xg_dict', 'rb'))
         # res_E = pd.DataFrame(columns=['custid', 'XGPH'])
@@ -1289,7 +1299,6 @@ class Users():
             return res
 
     # 新股偏好
-    
     def get_XGPH(self, custid):
         '''sql = ("select distinct custid, bsflag, market, orderdate, stkcode, stkeffect "
                "from tcl_logasset where custid=%s AND matchqty > 0 order by orderdate asc" % str(custid))
@@ -1366,9 +1375,7 @@ class Users():
     	return each_kh
 
     '''
-
     # ST股上分位数
-    
     def get_ST_dict(self, sta=False):
         res_E = pickle.load(open('dict/st_dict', 'rb'))
         # res_E = pd.DataFrame(columns=['custid', 'ST'])
@@ -1395,7 +1402,6 @@ class Users():
             return res
 
     # ST股偏好
-    
     def get_STPH(self, custid):
         df = self.get_logdata(custid)
         all_money = float(df["matchamt"].sum())
@@ -1600,14 +1606,13 @@ class Users():
         all_money = float(df.loc[:, "matchamt"].sum())
         dfn = df.shape[0]
         if (dfn == 0) or (all_money == 0.00):
-            each_kh["ZXB"] = -1
+            return -1
         else:
             stn = 0.00
             for i in range(dfn):
                 if 1999 < df['stkcode'].iloc[i] < 3000:
-                    stn += df['matchamt'].iloc[i]
+                    stn += float(df['matchamt'].iloc[i])
             return self.decay_divide(stn, all_money)
-
 
     # 永远满仓上分位数
     def get_YYMC_sta(self):
@@ -1689,7 +1694,6 @@ class Users():
         return each_kh'''
 
     # 注意力驱动偏好
-    
     def get_ZJLQD(self, custid):
         df = self.get_logdata(custid)
         df = df.dropna(how='any', axis=0)
