@@ -3,7 +3,7 @@ import pandas as pd
 import time
 if __name__ == '__main__':
     database = 'Yichuang'
-    log_num = 1
+    log_num = 60
     file = pd.read_excel('ID.xls')
 
     ids = [156074129,
@@ -18,29 +18,22 @@ if __name__ == '__main__':
             108052368]
 
 
-    users = Users(database=database, endtime='20171026', fromcsv=True)
+    users = Users(database=database, endtime='20171026', fromcsv=False)
     ad_khhs = set(file['FUNDSACCOUNT'])
-    #custids = users.custids
+
     df = ad = pd.DataFrame(columns=users.labels)
     #print(len(custids))
     st = time.time()
     i = 0
-    for custid in ids:
-        users.get_logdata(custid)
-        if len(users.logasset) < log_num:
+    for custid in ad_khhs:
+        log = users.get_logdata(custid)
+        if len(log)<1:
             continue
-        '''users.abnormals_l(custid)
-        users.high_shares_l(custid)
-        users.holdings(custid, '20171026')
-        users.holding_float(custid)
-        users.hold_var(custid)
-        users.hold_concept_var(custid)i
-        
-        users.limit_perference(custid)'''
-
         dic = users.get_labels(custid)
-        ad = ad.append(dic, ignore_index=True)
+        #if log>log_num:
+        #    dic = users.get_GDZX_l(custid)
         i += 1
+        ad = ad.append(dic, ignore_index=True)
         print(i)
     print((time.time() - st) / i)
-    ad = ad.to_csv('result/advanced2.csv')
+    ad = ad.to_csv('advanced_users_noindex.csv',index=False)

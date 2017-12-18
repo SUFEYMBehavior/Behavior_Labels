@@ -4,7 +4,7 @@ import time
 import math
 import pandas as pd
 #import talib
-#import pymssql
+import pymssql
 import tushare as ts
 from functools import wraps
 
