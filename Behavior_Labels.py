@@ -1,3 +1,4 @@
+# -*- coding=utf-8 -*-
 import tushare as ts
 import pandas as pd
 import datetime
@@ -212,6 +213,7 @@ class Users():
                     m.append(p)
                 else:
                     m.append(0)
+        m = standardize(m)
         flag = [True if x > spl else False for x in m]
         user['flag'] = flag
         dic = calculate(user, label='flag')
@@ -219,7 +221,7 @@ class Users():
         return self.Q * abl['Q'] + self.R * abl['R']
 
     #持仓概念集中度
-    def hold_concept_var(self, custid, path='datas/industry.csv'):
+    def hold_concept_var(self, custid, path='datas/concept.csv'):
         user = self.get_stkdata(custid)
         file = path
         concept = pd.read_csv(file)
@@ -236,8 +238,8 @@ class Users():
                 dic[row['c_name']] += row['stkbal']
             res = res.append(dic, ignore_index=True)
         a = np.array(res).astype('float')
-        sum = np.maximum(np.sum(a, axis=1), self.δ)
-        a = np.divide(a, sum[:, None])
+        su = np.maximum(np.sum(a, axis=1), self.δ)
+        a = np.divide(a, su[:, None])
         return np.mean(np.std(a, axis=1))
 
     #持仓地区集中度
@@ -288,8 +290,8 @@ class Users():
         holding_float = 0
         for _, row in df.iterrows():
             now = max(float(row['marketvalue'] + row['fundlastbal']), 0.0001)
-            holding_float += (now-last)/float(now)
-            last = now
+            holding_float += (now-last)/float(last)
+            last = float(row['marketvalue'] + row['fundbal'])
         return holding_float/df.shape[0]
 
     #持股周期 不加decay
