@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-import tushare as ts
+
 import pandas as pd
 import datetime
 import pickle
@@ -24,10 +24,12 @@ class Users():
         self.K_sta = 0.00'''
         self.fromcsv = fromcsv
         self.threshold = threshold
-        self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
-        if self.fromcsv == True:
+
+        if self.fromcsv == False:
             custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
             self.custids = set(custids_df['custid'])
+        else:
+            self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
         self.blacklist = set('204001')
         '''self.dict_keys = ['客户号',
             '持仓概念偏好',
@@ -91,7 +93,6 @@ class Users():
         return fundasset
 
     #fn_timer
-
     def get_logdata(self, custid):
 
         if custid == self.logcustid:
@@ -188,7 +189,6 @@ class Users():
                   att[0], att[1], self.get_GDZX_l(custid)
                   ]
         return dict(zip(self.labels, values))
-
 
     #异常波动
     def abnormals_l(self, custid, spl=1 ):
@@ -434,7 +434,6 @@ class Users():
             Flag = 0
         return Flag
 
-    
     # 止盈止损(输入一个客户号即可得到标签，无需用到所有人的数据）
     def get_ZYZS_l(self, custid):
         user = self.get_logdata(custid)
@@ -519,7 +518,6 @@ class Users():
                 hyg_dict[custid] = 0
         return hyg_dict'''
 
-    
     # k_line(输入客户号即可返回，不用考虑其他用户)
     def get_Kline_l(self, custid, path='datas/data_Kline'):
         kline_dict = {}

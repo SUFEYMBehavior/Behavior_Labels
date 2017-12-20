@@ -1,5 +1,6 @@
 from Behavior_Labels import Users
 import pandas as pd
+from accelarate import get_labels
 import time
 if __name__ == '__main__':
     database = 'Yichuang'
@@ -18,7 +19,7 @@ if __name__ == '__main__':
             108052368]
 
 
-    users = Users(database=database, endtime='20171026', fromcsv=False)
+    users = Users(database=database, endtime='20171026', fromcsv=True)
     ad_khhs = set(file['FUNDSACCOUNT'])
 
     df = ad = pd.DataFrame(columns=users.labels)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
         #if log>log_num:
         #    dic = users.get_GDZX_l(custid)
         i += 1
-        ad = ad.append(dic, ignore_index=True)
+
         print(i)
     print((time.time() - st) / i)
     ad = ad.to_csv('advanced_users_noindex.csv',index=False)

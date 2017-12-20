@@ -4,8 +4,7 @@ import time
 import math
 import pandas as pd
 #import talib
-import pymssql
-import tushare as ts
+#import pymssql
 from functools import wraps
 
 def fn_timer(function):

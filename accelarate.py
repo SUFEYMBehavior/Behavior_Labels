@@ -2,7 +2,6 @@
 import pandas as pd
 import numpy as np
 import datetime
-import talib
 import time as tm
 import csv
 
@@ -40,7 +39,7 @@ def dynamic_query(label, time, code):
 
 # 市盈率
 def pe_class():
-    pe = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pe']
+    pe = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pe']
     pe_arr = np.asarray(pe)
     result = {}
     for i in range(len(pe_arr)):
@@ -55,7 +54,7 @@ def pe_class():
 
 # 市净率
 def pb_class():
-    pb = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pb']
+    pb = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pb']
     pb_arr = np.asarray(pb)
     result = {}
     for i in range(len(pb_arr)):
@@ -70,7 +69,7 @@ def pb_class():
 
 # 净利润
 def npr_class():
-    npr = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['npr']
+    npr = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['npr']
     npr_arr = np.asarray(npr)
     result = {}
     for i in range(len(npr_arr)):
@@ -130,7 +129,7 @@ def company_class():
 
 # 市值
 def outstanding_class():
-    otsd = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['outstanding']
+    otsd = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['outstanding']
     otsd_arr = np.asarray(otsd)
     result = {}
     for i in range(len(otsd_arr)):
@@ -145,7 +144,7 @@ def outstanding_class():
 
 # 基金重仓股
 def fund_class():
-    fund = pd.read_csv('./fund/20173.csv', index_col=1, dtype={'code': 'S6'})['ratio']
+    fund = pd.read_csv('datas/fund/20173.csv', index_col=1, dtype={'code': 'S6'})['ratio']
     fund_arr = np.asarray(fund)
     result = {}
     for i in range(len(fund_arr)):
@@ -203,7 +202,7 @@ def op_class(time, code):
 # 热点
 def top_class(time, code):
     try:
-        top = pd.read_csv('./top/' + time.strftime('%Y-%m-%d').replace('-', '') + '.csv', index_col=0)['code']
+        top = pd.read_csv('datas/top/' + time.strftime('%Y-%m-%d').replace('-', '') + '.csv', index_col=0)['code']
         top = [check(stock) for stock in top]
         if code in top:
             return 1
@@ -498,6 +497,14 @@ def company_pref(df, khh):
     return invest_pref(df, khh, 'static', 'company', 4)
 
 
+def get_labels(users, custid):
+    logasset = users.get_logdata(custid)
+    stkasset = users.get_stkdata(custid)
+    fundasset = users.get_funddata(custid)
+    dic = {}
+    return dic
+
+'''
 user = pd.read_csv("logasset_all_good.csv", dtype={'stkcode': 'S6'})[["busi_date", "custid", "stkeffect", "matchqty", "matchprice", "stkcode", "matchamt"]].drop_duplicates()
 user_set = np.unique(user["custid"])
 lent = len(user_set)
@@ -528,7 +535,7 @@ for i in discard:
 start = tm.time()
 result_list = []
 for index, khh in enumerate(user_set):
-    print index, "/", lent
+    print(index, "/", lent)
     temp_list = []
     temp_list.append([khh])
     temp_list.append(pe_pref(user, khh))
@@ -554,4 +561,5 @@ with open('all_good_users.csv', 'wb') as csvfile:
     for result_user in result_list:
         row = [i for value in result_user for i in value]
         csvwriter.writerow(row)
-print end - start
+print(end - start)
+'''
