@@ -177,16 +177,16 @@ def dynamic_query(label, time, code):
 
 # 市盈率
 def pe_class():
-    pe = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pe']
+    pe = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'str'})['pe']
     pe_arr = np.asarray(pe)
     result = {}
     for i in range(len(pe_arr)):
         if pe_arr[i] > 30:
-            result[pe.index[i]] = 0
+            result[check(pe.index[i])] = 0
         elif pe_arr[i] < 15:
-            result[pe.index[i]] = 2
+            result[check(pe.index[i])] = 2
         else:
-            result[pe.index[i]] = 1
+            result[check(pe.index[i])] = 1
     return result
 
 
@@ -377,11 +377,11 @@ def Q_pref(df, khh, real_time, label, label_num):
         if row["matchqty"] > 0.0 and row["stkeffect"] > 0:
             if real_time == 'static':
                 try:
-                    pa[targets[row["stkcode"]]] += row["matchamt"]
+                    pa[targets[str(row["stkcode"])]] += row["matchamt"]
                 except KeyError:
                     continue
             else:
-                targets = dynamic_query(label, int2date(row["busi_date"]), check(row["stkcode"]))
+                targets = dynamic_query(label, int2date(row["busi_date"]), check(str(row["stkcode"])))
                 if not type(targets) == list:  # 预留多标签值
                     pa[targets] += row["matchamt"]
             pall += row["matchamt"]

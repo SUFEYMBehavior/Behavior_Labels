@@ -34,6 +34,7 @@ if __name__ == '__main__':
         list = get_labels(users, custid)
         print(list)
         dic = users.get_labels(custid)
+        print(dic)
         #if log>log_num:
         #    dic = users.get_GDZX_l(custid)
         i += 1
