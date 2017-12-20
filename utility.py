@@ -144,122 +144,161 @@ def standardize(data):
     s = (s-s.mean())/s.std()
     return s
 
-# 静态分类查询
 def static_label_name(label):
-    return {
-        'pe': pe_class(),
-        'outstanding': outstanding_class(),
-        'pb': pb_class(),
-        'npr': npr_class(),
-        'industry': industry_class(),
-        'concept': concept_class(),
-        'area': area_class(),
-    }.get(label)
+    if label == "pe":
+        return pe_class()
+    elif label == "outstanding":
+        return outstanding_class()
+    elif label == "pb":
+        return pb_class()
+    elif label == "npr":
+        return npr_class()
+    elif label == "industry":
+        return industry_class()
+    elif label == "concept":
+        return concept_class()
+    elif label == "area":
+        return area_class()
+    elif label == "company":
+        return company_class()
+    elif label == 'fund':
+        return fund_class()
 
 
 # 动态分类查询
 def dynamic_query(label, time, code):
-    return {
-        'tor': tor_class(time, code),
-        'op': op_class(time, code),
-        'top': top_class(time, code),
-        'fund': fund_class(time, code),
-    }.get(label)
+    if label == 'tor':
+        return tor_class(time, code)
+    elif label == 'op':
+        return op_class(time, code)
+    elif label == 'top':
+        return top_class(time, code)
 
 
 # 市盈率
 def pe_class():
-    pe = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pe']
+    pe = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pe']
     pe_arr = np.asarray(pe)
-    result = [[] for i in range(3)]
+    result = {}
     for i in range(len(pe_arr)):
         if pe_arr[i] > 30:
-            result[0].append(pe.index[i].decode())
+            result[pe.index[i]] = 0
         elif pe_arr[i] < 15:
-            result[2].append(pe.index[i].decode())
+            result[pe.index[i]] = 2
         else:
-            result[1].append(pe.index[i].decode())
+            result[pe.index[i]] = 1
     return result
 
 
 # 市净率
 def pb_class():
-    pb = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pb']
+    pb = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pb']
     pb_arr = np.asarray(pb)
-    result = [[] for i in range(3)]
+    result = {}
     for i in range(len(pb_arr)):
         if pb_arr[i] > 7.5:
-            result[0].append(pb.index[i].decode())
+            result[pb.index[i]] = 0
         elif pb_arr[i] < 2:
-            result[2].append(pb.index[i].decode())
+            result[pb.index[i]] = 2
         else:
-            result[1].append(pb.index[i].decode())
+            result[pb.index[i]] = 1
     return result
 
 
 # 净利润
 def npr_class():
-    npr = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['npr']
+    npr = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['npr']
     npr_arr = np.asarray(npr)
-    result = [[] for i in range(2)]
+    result = {}
     for i in range(len(npr_arr)):
         if npr_arr[i] > 0:
-            result[0].append(npr.index[i].decode())
+            result[npr.index[i]] = 0
         else:
-            result[1].append(npr.index[i].decode())
+            result[npr.index[i]] = 1
     return result
 
 
 # 行业
 def industry_class():
-    industry_title = pd.read_csv('industry_title.csv', index_col=0, encoding='utf-8')
-    industry = pd.read_csv('industry.csv', encoding='utf-8', dtype={'code': 'S6'})
-    result = [[] for i in range(len(industry_title))]
-    for index, row in industry.iterrows():
-        result[industry_title.loc[row['c_name']][0]].append(row['code'].decode())
+    industry = pd.read_excel('datas/new_industry.xls')
+    industry_title = {}
+    for no, name in enumerate(np.unique(industry[u"二级行业名称"])):
+        industry_title[name] = no
+    result = {}
+    for _, row in industry.iterrows():
+        result[check(row[u'代码'])] = industry_title[row[u"二级行业名称"]]
     return result
 
 
 # 概念
 def concept_class():
-    concept_title = pd.read_csv('concept_title.csv', index_col=0, encoding='utf-8')
-    concept = pd.read_csv('concept.csv', encoding='utf-8', dtype={'code': 'S6'})
-    result = [[] for i in range(len(concept_title))]
-    for index, row in concept.iterrows():
-        result[concept_title.loc[row['c_name']][0]].append(row['code'].decode())
+    concept = pd.read_csv('datas/concept.csv', encoding='utf-8', dtype={'code': 'S6'})
+    concept_title = {}
+    for no, name in enumerate(np.unique(concept['c_name'])):
+        concept_title[name] = no
+    result = {}
+    for _, row in concept.iterrows():
+        result[row['code']] = concept_title[row['c_name']]
     return result
 
 
 # 地区
 def area_class():
-    area_title = pd.read_csv('area_title.csv', index_col=0, encoding='utf-8')
-    area = pd.read_csv('area.csv', encoding='utf-8', dtype={'code': 'S6'})
-    result = [[] for i in range(len(area_title))]
-    for index, row in area.iterrows():
-        result[area_title.loc[row['area']][0]].append(row['code'].decode())
+    area = pd.read_csv('datas/area.csv', encoding='utf-8', dtype={'code': 'S6'})
+    area_title = {}
+    for no, name in enumerate(np.unique(area['area'])):
+        area_title[name] = no
+    result = {}
+    for _, row in area.iterrows():
+        result[row['code']] = area_title[row['area']]
+    return result
+
+
+# 公司
+def company_class():
+    company = pd.read_csv('datas/company.csv', encoding='utf-8', dtype={'code': 'S6'})
+    result = {}
+    # for i in range(len(company)):
+    #     result[company.ix[i, 0]] = company.ix[i, 1]
+    for _, row in company.iterrows():
+        result[check(row['code'])] = row['label']
     return result
 
 
 # 市值
 def outstanding_class():
-    otsd = pd.read_csv('basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['outstanding']
+    otsd = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['outstanding']
     otsd_arr = np.asarray(otsd)
-    result = [[] for i in range(3)]
+    result = {}
     for i in range(len(otsd_arr)):
         if otsd_arr[i] > 1:
-            result[0].append(otsd.index[i].decode())
+            result[otsd.index[i]] = 0
         elif otsd_arr[i] < 0.5:
-            result[2].append(otsd.index[i].decode())
+            result[otsd.index[i]] = 2
         else:
-            result[1].append(otsd.index[i].decode())
+            result[otsd.index[i]] = 1
+    return result
+
+
+# 基金重仓股
+def fund_class():
+    fund = pd.read_csv('datas/fund/20173.csv', index_col=1, dtype={'code': 'S6'})['ratio']
+    fund_arr = np.asarray(fund)
+    result = {}
+    for i in range(len(fund_arr)):
+        if fund_arr[i] > 0.2:
+            result[fund.index[i]] = 1
+        else:
+            result[fund.index[i]] = 0
     return result
 
 
 # 换手率
 def tor_class(time, code):  # 未考虑到三天均不在的情况
     try:
+        # 若无turnover
         tor = pd.read_csv('./hist/' + code + '.csv', index_col=0)['turnover']
-        # time = int2date(time)
+
         past_three = [(time - 3 * datetime.timedelta(days=1)), time - 2 * datetime.timedelta(days=1),
                       time - datetime.timedelta(days=1)]
         past_three = [day.strftime('%Y-%m-%d') for day in past_three]
@@ -272,6 +311,8 @@ def tor_class(time, code):  # 未考虑到三天均不在的情况
         else:
             return 1
     except IOError:
+        return 0
+    except KeyError:
         return 0
 
 
@@ -288,7 +329,10 @@ def op_class(time, code):
             else:
                 return 1
         else:  # 向前递归未休市
-            return op_class(time - datetime.timedelta(days=1), code)
+            if time > datetime.date(2017, 7, 1):
+                return op_class(time - datetime.timedelta(days=1), code)
+            else:
+                return 0
     except IOError:
         return 0
 
@@ -296,32 +340,17 @@ def op_class(time, code):
 # 热点
 def top_class(time, code):
     try:
-        top = pd.read_csv('./top/' + time.strftime('%Y-%m-%d').replace('-', '') + '.csv', index_col=0)['code']
+        top = pd.read_csv('datas/top/' + time.strftime('%Y-%m-%d').replace('-', '') + '.csv', index_col=0)['code']
         top = [check(stock) for stock in top]
         if code in top:
             return 1
         else:
             return 0
     except IOError:
-        return top_class(time - datetime.timedelta(days=1), code)
-
-
-# 基金重仓股
-def fund_class(time, code):
-    year = int(time.year)
-    quarter = int((time.month - 1) / 3) + 1
-    try:
-        fund = pd.read_csv('./fund/' + str(year) + str(quarter) + '.csv', index_col=1, dtype={'code': 'S6'})['ratio']
-    except IOError:
-        fund = pd.read_csv('./fund/' + str(year) + str(quarter - 1) + '.csv', index_col=1, dtype={'code': 'S6'})['ratio']
-    try:
-        ratio = fund[code]
-        if ratio > 0.2:
-            return 1
+        if time > datetime.date(2017, 7, 1):
+            return top_class(time - datetime.timedelta(days=1), code)
         else:
             return 0
-    except KeyError:
-        return 0
 
 
 def check(stock):
@@ -337,48 +366,30 @@ def int2date(time):
     return time
 
 
-def quarter_series(start, end):
-    series = [start]
-    if start.year == end.year:
-        for i in range(start.month + 1, end.month + 1):
-            if i % 3 == 1:
-                series.append(datetime.date(start.year, i, 1))
-    else:
-        for i in range(start.month + 1, 13):
-            if i % 3 == 1:
-                series.append(datetime.date(start.year, i, 1))
-        for i in range(start.year + 1, end.year):
-            for j in range(1, 12, 3):
-                series.append(datetime.date(i, j, 1))
-        for i in range(1, end.month + 1):
-            if i % 3 == 1:
-                series.append(datetime.date(end.year, i, 1))
-    series.append(end)
-    return series
-
-
 # 考虑到一个股属于多个标签值
 def Q_pref(df, khh, real_time, label, label_num):
-
+    df = df[df["custid"] == khh]
     pa = [0.0 for i in range(label_num)]
     pall = 0.0001
     if real_time == 'static':
         targets = static_label_name(label)
-    for index, row in df.iterrows():
-        if float(row["matchqty"]) > 0.0 and row["stkeffect"] > 0:
+    for _, row in df.iterrows():
+        if row["matchqty"] > 0.0 and row["stkeffect"] > 0:
             if real_time == 'static':
-                for i, target in enumerate(targets):
-                    pa[i] += (check(row["stkcode"]) in target) * float(row["matchprice"])
+                try:
+                    pa[targets[row["stkcode"]]] += row["matchamt"]
+                except KeyError:
+                    continue
             else:
                 targets = dynamic_query(label, int2date(row["busi_date"]), check(row["stkcode"]))
                 if not type(targets) == list:  # 预留多标签值
-                    pa[targets] += float(row["matchprice"])
-            pall += float(row["matchprice"])
+                    pa[targets] += row["matchamt"]
+            pall += row["matchamt"]
     return np.asarray(pa) / pall
 
 
 def R_pref(df, khh, real_time, label, label_num):
-
+    df = df[df["custid"] == khh]
     qa = [0.0 for i in range(label_num)]
     qall = 0.0001
     stocks = np.unique(np.asarray(df["stkcode"]))
@@ -395,15 +406,15 @@ def R_pref(df, khh, real_time, label, label_num):
             for no, time in enumerate(times):
                 if inv > 0:
                     for i, target in enumerate(targets):
-                        na[i] += float((check(stock) in target) * (times_date[no] - times_date[no - 1]).days * inv)
-                    nall += float((times_date[no] - times_date[no - 1]).days * inv)
+                        na[i] += (check(stock) in target) * (times_date[no] - times_date[no - 1]).days * inv
+                    nall += (times_date[no] - times_date[no - 1]).days * inv
                 tempp = temp[temp["busi_date"] == time]
                 for index, row in tempp.iterrows():
-                    if float(row["matchqty"]) > 0.0:
+                    if row["matchqty"] > 0.0:
                         if row["stkeffect"] > 0:
-                            inv += float(float(row["matchqty"]))
+                            inv += row["matchqty"]
                         else:
-                            inv = max(inv - float(float(row["matchqty"])), 0)
+                            inv = max(inv - row["matchqty"], 0)
             qa = np.asarray(na) + np.asarray(qa)
             qall += nall
         elif real_time == 'daily':  # 根据时间对每天库存求和
@@ -411,11 +422,11 @@ def R_pref(df, khh, real_time, label, label_num):
             for no in range(len(times) - 1):
                 tempp = temp[temp["busi_date"] == times[no]]
                 for index, row in tempp.iterrows():
-                    if float(row["matchqty"]) > 0.0:
+                    if row["matchqty"] > 0.0:
                         if row["stkeffect"] > 0:
-                            inv += float(row["matchqty"])
+                            inv += row["matchqty"]
                         else:
-                            inv = max(inv - float(row["matchqty"]), 0)
+                            inv = max(inv - row["matchqty"], 0)
 
                 temp_time = times_date[no]
                 while not temp_time == times_date[no + 1]:
@@ -424,158 +435,29 @@ def R_pref(df, khh, real_time, label, label_num):
                         qa[targets] += inv
                     qall += inv
                     temp_time += datetime.timedelta(days=1)
-        elif real_time == 'quarterly':  # 判断季度开始日
-            for no in range(len(times) - 1):
-                tempp = temp[temp["busi_date"] == times[no]]
-                for index, row in tempp.iterrows():
-                    if float(row["matchqty"]) > 0.0:
-                        if row["stkeffect"] > 0:
-                            inv += float(row["matchqty"])
-                        else:
-                            inv = max(inv - float(row["matchqty"]), 0)
-
-                start = times_date[no]
-                end = times_date[no + 1]
-                time_series = quarter_series(start, end)
-                for index in range(len(time_series) - 1):
-                    targets = dynamic_query('fund', time_series[index], check(stock))
-                    if not type(targets) == list:  # 预留多标签值
-                        qa[targets] += inv * (time_series[index + 1] - time_series[index]).days
-                    qall += inv * (time_series[index + 1] - time_series[index]).days
     return np.asarray(qa) / qall
 
+classes = {}
+classes['pe'] = pe_class()
+classes['outstanding'] = outstanding_class()
+classes['pb'] = pb_class()
+classes['npr'] = npr_class()
+classes['industry'] = industry_class()
+classes['concept'] = concept_class()
+classes['area'] = area_class()
+classes['company'] = company_class()
+classes['fund'] = fund_class()
 
-def invest_pref(df, khh, real_time, label, label_num):
-    if np.sum(R_pref(df, khh, real_time, label, label_num)) > 0:
-        value = 0.5 * Q_pref(df, khh, real_time, label, label_num) + 0.5 * R_pref(df, khh, real_time, label, label_num)
-    else:
-        value = Q_pref(df, khh, real_time, label, label_num)
-    return {khh: value}
-
-
-def operate_pref(df, khh, label):
-
-    stocks = np.unique(np.asarray(df["stkcode"]))
-    pa = 0
-    pall = 0.0001
-    for stock in stocks:
-        temp = df[df["stkcode"] == stock]
-        if label == 'MACD':
-            pa += macd_op(temp, stock)[0]
-            pall += macd_op(temp, stock)[1]
-        elif label == 'KDJ':
-            pa += kdj_op(temp, stock)[0]
-            pall += kdj_op(temp, stock)[1]
-    return {khh: pa / pall}
-
-
-def macd_op(df, stock):
-    pa_op = 0
-    pall_op = 0
-    try:
-        hist_k = pd.read_csv('./hist/' + check(stock) + '.csv',index_col=0, usecols=[0, 3])
-        hist_k["num"] = [(len(hist_k)-i-1) for i in range(len(hist_k))]
-        close = list(hist_k['close'])
-        close.reverse()
-        _, _, hist = talib.MACD(np.asarray(close, dtype=np.double))
-        for index, row in df.iterrows():
-            if row["matchqty"] > 0.0:
-                time = int2date(row["busi_date"]).strftime('%Y-%m-%d')
-                try:
-                    no = int(hist_k.ix[time][1])
-                    if (hist[no - 1] > 0 and row["stkeffect"] > 0) or (hist[no - 1] < 0 and row["stkeffect"] < 0):
-                        pa_op += 1
-                    pall_op += 1
-                except KeyError:
-                    continue
-        return [pa_op, pall_op]
-    except IOError:
-        return [pa_op, pall_op]
-
-
-def kdj_op(df, stock):
-    pa_op = 0
-    pall_op = 0
-    try:
-        hist_k = pd.read_csv('./hist/' + check(stock) + '.csv', index_col=0, usecols=[0, 2, 3, 4])
-        hist_k["num"] = [(len(hist_k) - i - 1) for i in range(len(hist_k))]
-        high = list(hist_k['high'])
-        high.reverse()
-        low = list(hist_k['low'])
-        low.reverse()
-        close = list(hist_k['close'])
-        close.reverse()
-        K, D = talib.STOCH(np.asarray(high), np.asarray(low), np.asarray(close),
-                           fastk_period=9)
-        J = 3 * K - 2 * D
-        for index, row in df.iterrows():
-            if row["matchqty"] > 0.0:
-                time = int2date(row["busi_date"]).strftime('%Y-%m-%d')
-                try:
-                    no = int(hist_k.ix[time][3])
-                    if (J[no - 1] > 0 and row["stkeffect"] > 0) or (J[no - 1] < 0 and row["stkeffect"] < 0):
-                        pa_op += 1
-                    pall_op += 1
-                except KeyError:
-                    continue
-        return [pa_op, pall_op]
-    except IOError:
-        return [pa_op, pall_op]
-
-
-def tor_pref(df, khh):
-    return invest_pref(df, khh, 'daily', 'tor', 3)
-
-
-def fund_pref(df, khh):
-    return invest_pref(df, khh, 'quarterly', 'fund', 2)
-
-
-def otstd_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'outstanding', 3)
-
-
-def op_pref(df, khh):
-    return invest_pref(df, khh, 'daily', 'op', 3)
-
-
-def pe_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'pe', 3)
-
-
-def pb_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'pb', 3)
-
-
-def npr_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'npr', 2)
-
-
-def top_pref(df, khh):
-    return invest_pref(df, khh, 'daily', 'top', 2)
-
-
-def macd_pref(df, khh):
-    return operate_pref(df, khh, 'MACD')
-
-
-def kdj_pref(df, khh):
-    return operate_pref(df, khh, 'KDJ')
-
-
-def industry_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'industry', 49)
-
-
-def concept_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'concept', 99)
-
-
-def area_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'area', 32)
-
-def sql_num(khh, database):
-    sql =  ('select custid, stkcode from tcl_logasset where custid = %s'%khh)
-    ms = MSSQL(host = "localhost", user = "SA", pwd = "!@Cxy7300", db = database)
-    df = ms.ExecQuery(sql)
-    return len(df)
+k_down = [0, 1, 3, 8, 14, 19, 20, 22, 24, 31, 32, 44, 49, 52, 59]
+k_up = [5, 6, 9, 17, 23, 33, 36, 40, 42, 43, 45, 58]
+other = [2, 4, 10, 12, 13, 25, 26, 27, 30, 47, 55, 60]
+discard = [7, 11, 15, 16, 18, 21, 28, 29, 34, 35, 37, 38, 39, 41, 46, 48, 50, 51, 53, 54, 56, 57]
+pattern_dict = {}
+for i in k_down:
+    pattern_dict[i] = 'down'
+for i in k_up:
+    pattern_dict[i] = 'up'
+for i in other:
+    pattern_dict[i] = 'other'
+for i in discard:
+    pattern_dict[i] = 'discard'

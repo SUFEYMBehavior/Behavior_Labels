@@ -27,9 +27,12 @@ if __name__ == '__main__':
     st = time.time()
     i = 0
     for custid in ad_khhs:
+
         log = users.get_logdata(custid)
         if len(log)<1:
             continue
+        list = get_labels(users, custid)
+        print(list)
         dic = users.get_labels(custid)
         #if log>log_num:
         #    dic = users.get_GDZX_l(custid)
