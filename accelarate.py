@@ -195,7 +195,7 @@ def industry_pref(df, khh):
 
 
 def concept_pref(df, khh):
-    return invest_pref(df, khh, 'static', 'concept', 99)
+    return invest_pref(df, khh, 'static', 'concept', 162)
 
 
 def area_pref(df, khh):
@@ -205,7 +205,7 @@ def area_pref(df, khh):
 def company_pref(df, khh):
     return invest_pref(df, khh, 'static', 'company', 4)
 
-
+@fn_timer
 def get_labels(users, custid):
     logasset = users.get_logdata(custid)
     user = logasset

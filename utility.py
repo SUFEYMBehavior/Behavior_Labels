@@ -145,24 +145,7 @@ def standardize(data):
     return s
 
 def static_label_name(label):
-    if label == "pe":
-        return pe_class()
-    elif label == "outstanding":
-        return outstanding_class()
-    elif label == "pb":
-        return pb_class()
-    elif label == "npr":
-        return npr_class()
-    elif label == "industry":
-        return industry_class()
-    elif label == "concept":
-        return concept_class()
-    elif label == "area":
-        return area_class()
-    elif label == "company":
-        return company_class()
-    elif label == 'fund':
-        return fund_class()
+    return classes[label]
 
 
 # 动态分类查询
@@ -192,7 +175,7 @@ def pe_class():
 
 # 市净率
 def pb_class():
-    pb = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['pb']
+    pb = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'str'})['pb']
     pb_arr = np.asarray(pb)
     result = {}
     for i in range(len(pb_arr)):
@@ -207,7 +190,7 @@ def pb_class():
 
 # 净利润
 def npr_class():
-    npr = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['npr']
+    npr = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'str'})['npr']
     npr_arr = np.asarray(npr)
     result = {}
     for i in range(len(npr_arr)):
@@ -232,7 +215,7 @@ def industry_class():
 
 # 概念
 def concept_class():
-    concept = pd.read_csv('datas/concept.csv', encoding='utf-8', dtype={'code': 'S6'})
+    concept = pd.read_csv('datas/concept.csv', encoding='utf-8', dtype={'code': 'str'})
     concept_title = {}
     for no, name in enumerate(np.unique(concept['c_name'])):
         concept_title[name] = no
@@ -244,7 +227,7 @@ def concept_class():
 
 # 地区
 def area_class():
-    area = pd.read_csv('datas/area.csv', encoding='utf-8', dtype={'code': 'S6'})
+    area = pd.read_csv('datas/area.csv', encoding='utf-8', dtype={'code': 'str'})
     area_title = {}
     for no, name in enumerate(np.unique(area['area'])):
         area_title[name] = no
@@ -256,7 +239,7 @@ def area_class():
 
 # 公司
 def company_class():
-    company = pd.read_csv('datas/company.csv', encoding='utf-8', dtype={'code': 'S6'})
+    company = pd.read_csv('datas/company.csv', encoding='utf-8', dtype={'code': 'str'})
     result = {}
     # for i in range(len(company)):
     #     result[company.ix[i, 0]] = company.ix[i, 1]
@@ -267,7 +250,7 @@ def company_class():
 
 # 市值
 def outstanding_class():
-    otsd = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'S6'})['outstanding']
+    otsd = pd.read_csv('datas/basic.csv', index_col=0, encoding='utf-8', dtype={'code': 'str'})['outstanding']
     otsd_arr = np.asarray(otsd)
     result = {}
     for i in range(len(otsd_arr)):
@@ -282,7 +265,7 @@ def outstanding_class():
 
 # 基金重仓股
 def fund_class():
-    fund = pd.read_csv('datas/fund/20173.csv', index_col=1, dtype={'code': 'S6'})['ratio']
+    fund = pd.read_csv('datas/fund/20173.csv', index_col=1, dtype={'code': 'str'})['ratio']
     fund_arr = np.asarray(fund)
     result = {}
     for i in range(len(fund_arr)):
