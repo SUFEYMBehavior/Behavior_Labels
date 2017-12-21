@@ -197,11 +197,11 @@ def pb_class():
     result = {}
     for i in range(len(pb_arr)):
         if pb_arr[i] > 7.5:
-            result[pb.index[i]] = 0
+            result[check(pb.index[i])] = 0
         elif pb_arr[i] < 2:
-            result[pb.index[i]] = 2
+            result[check(pb.index[i])] = 2
         else:
-            result[pb.index[i]] = 1
+            result[check(pb.index[i])] = 1
     return result
 
 
@@ -212,9 +212,9 @@ def npr_class():
     result = {}
     for i in range(len(npr_arr)):
         if npr_arr[i] > 0:
-            result[npr.index[i]] = 0
+            result[check(npr.index[i])] = 0
         else:
-            result[npr.index[i]] = 1
+            result[check(npr.index[i])] = 1
     return result
 
 
@@ -238,7 +238,7 @@ def concept_class():
         concept_title[name] = no
     result = {}
     for _, row in concept.iterrows():
-        result[row['code']] = concept_title[row['c_name']]
+        result[check(row['code'])] = concept_title[row['c_name']]
     return result
 
 
@@ -250,7 +250,7 @@ def area_class():
         area_title[name] = no
     result = {}
     for _, row in area.iterrows():
-        result[row['code']] = area_title[row['area']]
+        result[check(row['code'])] = area_title[row['area']]
     return result
 
 
@@ -272,11 +272,11 @@ def outstanding_class():
     result = {}
     for i in range(len(otsd_arr)):
         if otsd_arr[i] > 1:
-            result[otsd.index[i]] = 0
+            result[check(otsd.index[i])] = 0
         elif otsd_arr[i] < 0.5:
-            result[otsd.index[i]] = 2
+            result[check(otsd.index[i])] = 2
         else:
-            result[otsd.index[i]] = 1
+            result[check(otsd.index[i])] = 1
     return result
 
 
@@ -287,9 +287,9 @@ def fund_class():
     result = {}
     for i in range(len(fund_arr)):
         if fund_arr[i] > 0.2:
-            result[fund.index[i]] = 1
+            result[check(fund.index[i])] = 1
         else:
-            result[fund.index[i]] = 0
+            result[check(fund.index[i])] = 0
     return result
 
 
@@ -377,7 +377,7 @@ def Q_pref(df, khh, real_time, label, label_num):
         if row["matchqty"] > 0.0 and row["stkeffect"] > 0:
             if real_time == 'static':
                 try:
-                    pa[targets[str(row["stkcode"])]] += row["matchamt"]
+                    pa[targets[check(str(row["stkcode"]))]] += row["matchamt"]
                 except KeyError:
                     continue
             else:
