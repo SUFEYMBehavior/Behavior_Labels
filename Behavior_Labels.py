@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-
+import tushare as ts
 import pandas as pd
 import datetime
 import pickle
@@ -7,13 +7,15 @@ from utility import *
 import numpy as np
 import time
 
+
 class Users():
-    def __init__(self, q=0.5, r=0.5, δ=1e-4,database='db_0901', endtime='20170915', threshold=20, fromcsv=False):
+    def __init__(self, q=0.5, r=0.5, δ=1e-4, database='db_0901', endtime='20170915', threshold=20, fromcsv=False):
         self.hist_data = 'hist/'
         self.ed = endtime
         self.Q = q
         self.R = r
         self.δ = δ
+        # ==
         '''self.X_flag = 0
         self.X_sta = 0.00
         self.S_flag = 0
@@ -24,12 +26,10 @@ class Users():
         self.K_sta = 0.00'''
         self.fromcsv = fromcsv
         self.threshold = threshold
-
-        if self.fromcsv == False:
+        self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
+        if self.fromcsv == True:
             custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
             self.custids = set(custids_df['custid'])
-        else:
-            self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
         self.blacklist = set('204001')
         '''self.dict_keys = ['客户号',
             '持仓概念偏好',
@@ -51,7 +51,7 @@ class Users():
         self.fundcustid = ''
         self.stkcustid = ''
         self.codelist = pickle.load(open('bin/codeset.bin', 'rb'))
-        self.labels = ['客户号','异常波动', '持仓集中度（概念）', '持仓集中度（个股）', '持仓盈亏', '持股周期', '涨跌停操作偏好',
+        self.labels = ['客户号', '异常波动', '持仓集中度（概念）', '持仓集中度（个股）', '持仓盈亏', '持股周期', '涨跌停操作偏好',
                        '高转送股偏好', '止盈偏好', '止损偏好',
                        '追高买入', '追高卖出', '看涨买入', '看涨卖出', '看跌买入', '看跌卖出',
                        '日线买入', '日线卖出', '周线买入', '周线卖出', '月线买入', '月线卖出',
@@ -68,13 +68,14 @@ class Users():
         if cal_all == 0:
             return -1
         else:
-            return cal_num/cal_all
+            return cal_num / cal_all
         '''thre = self.threshold
         p = cal_num/cal_all
         if cal_all >= thre:
             return p
         else:
             return p * math.sqrt(cal_all/thre)'''
+
     #
     def get_funddata(self, custid):
 
@@ -84,15 +85,17 @@ class Users():
             df = pd.read_csv('test/fundasset.csv')
             fundasset = df[df['custid'] == int(custid)]
         else:
-            log = self.ms.ExecQuery("select distinct custid, marketvalue, busi_date, fundbal, fundlastbal from tcl_fundasset "
-                                   "where custid = %s"
-                                   "order by busi_date ASC "%str(custid))
+            log = self.ms.ExecQuery(
+                "select distinct custid, marketvalue, busi_date, fundbal, fundlastbal from tcl_fundasset "
+                "where custid = %s"
+                "order by busi_date ASC " % str(custid))
             fundasset = pd.DataFrame(log, columns=['custid', 'marketvalue', 'busi_date', 'fundbal', 'fundlastbal'])
         self.fundcustid = custid
         self.fundasset = fundasset
         return fundasset
 
-    #fn_timer
+    # fn_timer
+
     def get_logdata(self, custid):
 
         if custid == self.logcustid:
@@ -105,10 +108,11 @@ class Users():
                                     "matchprice, matchamt, orderdate, ordertime, cleardate, market from tcl_logasset "
                                     "where matchamt > 0 and matchqty > 0 and busi_date != 0 and custid = %s "
                                     "order by busi_date ASC " % str(custid))
-            logasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'matchqty', 'bsflag', 'stkeffect', 'stkname',
+            logasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'matchqty', 'bsflag', 'stkeffect',
+                                                  'stkname',
                                                   'matchprice', 'matchamt', 'orderdate', 'ordertime', 'cleardate',
                                                   'market'])
-            #logasset = logasset[(logasset['matchamt'] > 0) & (logasset['matchqty'] > 0) & (logasset['busi_date'] != 0)]
+            # logasset = logasset[(logasset['matchamt'] > 0) & (logasset['matchqty'] > 0) & (logasset['busi_date'] != 0)]
         self.logcustid = custid
         self.logasset = logasset
         return logasset
@@ -177,21 +181,24 @@ class Users():
         fst = self.get_FSTPH(custid)
         att = self.get_ZJLQD(custid)
         hsr = self.high_shares_l(custid)
-        values = [custid, self.abnormals_l(custid),  self.hold_concept_var(custid), self.hold_var(custid), self.holding_float(custid),
+        values = [custid, self.abnormals_l(custid), self.hold_concept_var(custid), self.hold_var(custid),
+                  self.holding_float(custid),
                   self.holdings(custid, self.ed), self.limit_perference(custid), hsr, zyl, zsl,
                   kli[0], kli[1], kli[2], kli[3], kli[4], kli[5],
                   dl['DB'], dl['DS'], dl['WB'], dl['WS'], dl['MB'], dl['MS'],
                   jt['1B'], jt['1S'], jt['2B'], jt['2S'], jt['3B'], jt['3S'], jt['4B'], jt['4S'], jt['5B'], jt['5S'],
                   jt['6B'], jt['6S'], jt['7B'], jt['7S'], jt['8B'], jt['8S'], jt['9B'], jt['9S'],
                   self.get_BDCZ_l(custid), self.bs_operate_l(custid), self.get_XGQK(custid),
-                  fst['highB'], fst['highS'], fst['upB'], fst['upS'], fst['downB'], fst['downS'], fst['lowB'], fst['lowS'],
-                  self.get_STPH(custid), self.get_CXPH(custid), self.get_KZPH(custid), self.get_ZXBPH(custid), self.get_YYMCPH(custid),
+                  fst['highB'], fst['highS'], fst['upB'], fst['upS'], fst['downB'], fst['downS'], fst['lowB'],
+                  fst['lowS'],
+                  self.get_STPH(custid), self.get_CXPH(custid), self.get_KZPH(custid), self.get_ZXBPH(custid),
+                  self.get_YYMCPH(custid),
                   att[0], att[1], self.get_GDZX_l(custid)
                   ]
         return dict(zip(self.labels, values))
 
-    #异常波动
-    def abnormals_l(self, custid, spl=1 ):
+    # 异常波动
+    def abnormals_l(self, custid, spl=1):
         m = []
         user = self.get_logdata(custid)
         for i, row in user.iterrows():
@@ -203,12 +210,12 @@ class Users():
             t1 = datetime.datetime.strftime(st_time, '%Y-%m-%d')
             t2 = datetime.datetime.strftime(time, '%Y-%m-%d')
             zqdm = check(row['stkcode'])
-            # 取前一个月的历史行情 
+            # 取前一个月的历史行情
             if not zqdm in self.codelist:
                 m.append(0)
             else:
                 data = pd.read_csv(self.hist_data + zqdm + '.csv')
-                data = data[(data['date']>=t1) & (data['date']<=t2)]
+                data = data[(data['date'] >= t1) & (data['date'] <= t2)]
                 if data is not None and len(data['p_change']) > 0:
                     p = data['p_change'].abs().mean()
                     m.append(p)
@@ -224,7 +231,7 @@ class Users():
             abl = dic.iloc[0]
             return self.Q * abl['Q'] + self.R * abl['R']
 
-    #持仓概念集中度
+    # 持仓概念集中度
     def hold_concept_var(self, custid, path='datas/concept.csv'):
         user = self.get_stkdata(custid)
         file = path
@@ -236,7 +243,7 @@ class Users():
         keys = list(set(df['c_name']))
         res = pd.DataFrame(columns=keys)
         for tim in set(df['busi_date']):
-            rec = df[df['busi_date']==tim]
+            rec = df[df['busi_date'] == tim]
             dic = dict.fromkeys(keys, 0)
             for _, row in rec.iterrows():
                 dic[row['c_name']] += row['stkbal']
@@ -246,7 +253,7 @@ class Users():
         a = np.divide(a, su[:, None])
         return np.mean(np.std(a, axis=1))
 
-    #持仓地区集中度
+    # 持仓地区集中度
     def hold_area_var(self, custid, path='datas/area.csv'):
         user = self.get_stkdata(custid)
         file = path
@@ -258,7 +265,7 @@ class Users():
         keys = list(set(df['area']))
         res = pd.DataFrame(columns=keys)
         for tim in set(df['busi_date']):
-            rec = df[df['busi_date']==tim]
+            rec = df[df['busi_date'] == tim]
             dic = dict.fromkeys(keys, 0)
             for _, row in rec.iterrows():
                 dic[row['area']] += row['stkbal']
@@ -268,7 +275,7 @@ class Users():
         a = np.divide(a, sum[:, None])
         return np.mean(np.std(a, axis=1))
 
-    #持仓个股集中度
+    # 持仓个股集中度
     def hold_var(self, custid):
         df = self.get_stkdata(custid)
         keys = list(set(df['stkcode']))
@@ -284,7 +291,7 @@ class Users():
         a = np.divide(a, sum[:, None])
         return np.mean(np.std(a, axis=1))
 
-    #持仓盈亏
+    # 持仓盈亏
     def holding_float(self, custid):
         df = self.get_funddata(custid)
         df = df[df['marketvalue'] > 0]
@@ -294,18 +301,18 @@ class Users():
         holding_float = 0
         for _, row in df.iterrows():
             now = max(float(row['marketvalue'] + row['fundlastbal']), 0.0001)
-            holding_float += (now-last)/float(last)
+            holding_float += (now - last) / float(last)
             last = float(row['marketvalue'] + row['fundbal'])
-        return holding_float/df.shape[0]
+        return holding_float / df.shape[0]
 
-    #持股周期 不加decay
+    # 持股周期 不加decay
     def holdings(self, custid, end_time):
         user = self.get_logdata(custid)
         avg_time = []
         holdstock = {}
         for i, row in user.iterrows():
             cjsl = int(row["matchqty"])
-            flag = row['stkeffect']>0
+            flag = row['stkeffect'] > 0
             row['matchqty'] = abs(row['matchqty'])
             zqdm = check(row["stkcode"])
             time = datetime.datetime.strptime(str(int(row["orderdate"])), '%Y%m%d')
@@ -345,8 +352,8 @@ class Users():
         if nums == 0:
             return -1
         else:
-            return times/nums
-    
+            return times / nums
+
     def limit_perference(self, custid, time_range=1):
         custids = [0, 0]
         user = self.get_logdata(custid)
@@ -360,10 +367,10 @@ class Users():
             t2 = datetime.datetime.strftime(time, '%Y-%m-%d')
             zqdm = check(row['stkcode'])
             if zqdm in self.codelist:
-                data = pd.read_csv(self.hist_data+zqdm+'.csv')
-                data = data[(data['date']>=t1) & (data['date']<=t2)]
-                
-            # 取前一个月的历史行情 如果文件中有则取 否则查询
+                data = pd.read_csv(self.hist_data + zqdm + '.csv')
+                data = data[(data['date'] >= t1) & (data['date'] <= t2)]
+
+                # 取前一个月的历史行情 如果文件中有则取 否则查询
                 if data is None or data.shape[0] == 0:
                     continue
                 p_change = data['p_change'].max()
@@ -375,7 +382,7 @@ class Users():
                     cal_num += 1
                 custids = [cal_num, cal_all]
         return self.decay_divide(custids[0], custids[1])
-    
+
     def high_shares_l(self, custid, path='datas/shares.csv', share_limit=5):
         shr = pd.read_csv(path)
         user = self.get_logdata(custid)
@@ -383,7 +390,7 @@ class Users():
 
         for _, row in user.iterrows():
             sh = shr[shr['code'] == int(row["stkcode"])]
-            sh = sh[sh['report_date']<=str(int(row['orderdate']))]['shares']
+            sh = sh[sh['report_date'] <= str(int(row['orderdate']))]['shares']
             if sh.shape[0] == 0:
                 flag.append(False)
                 continue
@@ -451,7 +458,7 @@ class Users():
             cjjg = float(line['matchprice'])
             if cjsl == "0":
                 continue
-            elif zqfss >0:                # 委托类别为买入
+            elif zqfss > 0:  # 委托类别为买入
                 cjsl = float(cjsl)
                 if zqdm in dict.keys():  # 如果已存在该证券，则证券均值改变，股数改变
 
@@ -462,7 +469,7 @@ class Users():
                     jy_list.append(cjjg)
                     jy_list.append(cjsl)
                     dict[zqdm] = jy_list
-            elif zqfss <0:  # 委托类别为卖出
+            elif zqfss < 0:  # 委托类别为卖出
                 cjsl = float(cjsl)
                 if zqdm in dict.keys():  # 已经有买入交易
                     jc = cjjg - dict[zqdm][0]
@@ -539,26 +546,26 @@ class Users():
             if zqdm not in self.codelist:
                 continue
             else:
-                data = pd.read_csv(self.hist_data+ zqdm + '.csv')
-                df1 = data[(data['date']>=yesterday) & (data['date']<=wtrq)]
-                df2 = data[(data['date']>=wtrq) & (data['date']<=tomorrow)]
+                data = pd.read_csv(self.hist_data + zqdm + '.csv')
+                df1 = data[(data['date'] >= yesterday) & (data['date'] <= wtrq)]
+                df2 = data[(data['date'] >= wtrq) & (data['date'] <= tomorrow)]
             if df1 is None or df2 is None or len(df1) < 2 or len(df2) < 2:
                 continue
 
             yesterday_5ma = float(df1.iloc[1]['ma5'])
             today_5ma = float(df1.iloc[0]['ma5'])
             tomarrow_5ma = float(df2.iloc[-2]['ma5'])
-            if zqfss >0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
+            if zqfss > 0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
                 zgmr_times = zgmr_times + 1
-            elif zqfss >0 and yesterday_5ma > today_5ma:
+            elif zqfss > 0 and yesterday_5ma > today_5ma:
                 kdmr_times = kdmr_times + 1
-            elif zqfss >0 and yesterday_5ma <= today_5ma:
+            elif zqfss > 0 and yesterday_5ma <= today_5ma:
                 kzmr_times = kzmr_times + 1
-            elif zqfss <0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
+            elif zqfss < 0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
                 zgmc_times = zgmc_times + 1
-            elif zqfss <0 and yesterday_5ma > today_5ma:
+            elif zqfss < 0 and yesterday_5ma > today_5ma:
                 kdmc_times = kdmc_times + 1
-            elif zqfss <0 and yesterday_5ma <= today_5ma:
+            elif zqfss < 0 and yesterday_5ma <= today_5ma:
                 kzmc_times = kzmc_times + 1
             total_times = total_times + 1
         zgmr_fre = self.decay_divide(zgmr_times, total_times)
@@ -568,10 +575,9 @@ class Users():
         kdmr_fre = self.decay_divide(kdmr_times, total_times)
         kdmc_fre = self.decay_divide(kdmc_times, total_times)
 
-        kline_fre_list= [zgmr_fre, zgmc_fre, kzmr_fre, kzmc_fre, kdmr_fre, kdmc_fre]
+        kline_fre_list = [zgmr_fre, zgmc_fre, kzmr_fre, kzmc_fre, kdmr_fre, kdmc_fre]
 
         return kline_fre_list
-
 
     def get_DLCL2(self, custid, path='datas/industry.csv'):
         user = self.get_logdata(custid)
@@ -599,9 +605,9 @@ class Users():
             else:
                 way = "S"
             if number == 0:
-                kh_res["D" + way] = -1
-                kh_res["W" + way] = -1
-                kh_res["M" + way] = -1
+                kh_res["D" + way] = float("nan")
+                kh_res["W" + way] = float("nan")
+                kh_res["M" + way] = float("nan")
             else:
                 data_DK = data.loc[:, ["orderdate", "c_name"]].drop_duplicates()
                 data_D = data_DK["orderdate"].drop_duplicates()
@@ -673,6 +679,7 @@ class Users():
             res_l.append(res)
         res = pd.merge(res_l[0], res_l[1], how="left", on="custid")
         return res.iloc[0]
+
     # 波段操作_CCI(输入客户号即可返回波段操作偏好）
     def get_CCI(self, df, N):
         df['typ'] = (df['high'] + df['low'] + df['close']) / 3
@@ -706,14 +713,15 @@ class Users():
                 df = gphq[['open', 'high', 'low', 'close', 'volume']].sort_index(ascending=True)
                 cci_df = self.get_CCI(df, 14)
                 cci = cci_df.iloc[-1]['cci']
-                if zqfss>0 and cci < -100: cci_times = cci_times + 1
-                elif zqfss<0 and cci > 100: cci_times = cci_times + 1
-
+                if zqfss > 0 and cci < -100:
+                    cci_times = cci_times + 1
+                elif zqfss < 0 and cci > 100:
+                    cci_times = cci_times + 1
 
         return self.decay_divide(cci_times, wt_times)
 
-    #波段操作_bs操作偏好
-    def bs_operate_l(self,custid, path='datas/bsday.csv'):
+    # 波段操作_bs操作偏好
+    def bs_operate_l(self, custid, path='datas/bsday.csv'):
 
         bs_operate_dict = {}
         bs_times = 0
@@ -731,17 +739,17 @@ class Users():
             day = wtrq[6:8]
             if day[0] == '0':
                 day = day[1]
-            wtrq = wtrq[0:4]+'/'+month+'/'+day
+            wtrq = wtrq[0:4] + '/' + month + '/' + day
             bs = bs_data[bs_data['Code'] == int(zqdm)]
             if cjsl == "0":
                 continue
 
-            elif zqfss > 0:# 委托类别为买入
+            elif zqfss > 0:  # 委托类别为买入
                 wt_times = wt_times + 1
-                bs_times += bs[bs['BuyPointDate']==wtrq].shape[0]
+                bs_times += bs[bs['BuyPointDate'] == wtrq].shape[0]
             elif zqfss < 0:  # 委托类别为卖出
                 wt_times = wt_times + 1
-                bs_times += bs[bs['SellPointDate']==wtrq].shape[0]
+                bs_times += bs[bs['SellPointDate'] == wtrq].shape[0]
 
         return self.decay_divide(bs_times, wt_times)
 
@@ -765,14 +773,16 @@ class Users():
     		res_k[w] = res_w
     	return res_k
     '''
+
     # 交易时间偏好 没有decay
     def get_JYSJ(self, custid):
         datas = self.logasset
-        lb = {1: "ZPJH", 2: "ZPKH", 3: "ZPPZ", 4: "ZPSQ", 5: "ZPSH", 6: "XPKH", 7: "XPPZ", 8: "XPSQ", 9: "SPJH"}
+        lb = {1: "ZPJH", 2: "ZPKH", 3: "ZPPZ", 4: "ZPSQ", 5: "ZPSH", 6: "XPKH", 7: "XPPZ", 8: "XPSQ", 9: "SPJH",
+              10: "others"}
         tim = {1: "09:30:00", 2: "10:00:00", 3: "11:00:00", 4: "11:30:00", 5: "13:00:00", 6: "13:30:00", 7: "14:30:00",
                8: "15:00:00",
-               9: "14:57:00"}
-        for t in range(9):  # 提前设定好每个标签类别对应的时间并解析成时间格式
+               9: "14:57:00", 10: "09:15:00", 11: "09:25:00", 12: "09:00:00"}
+        for t in range(len(tim)):  # 提前设定好每个标签类别对应的时间并解析成时间格式
             tim[t + 1] = time.strptime(tim[t + 1], '%H:%M:%S')
 
         res_al = []
@@ -790,18 +800,21 @@ class Users():
             df = data
             aln = df.shape[0]
             if aln == 0:
-                for j in range(9):
-                    res_k[str(j + 1) + way] = -1
+                for j in range(len(lb)):
+                    res_k[str(j + 1) + way] = float("nan")
             else:
                 for i in range(aln):  # 遍历该用户的每条交易记录
                     t = str(df['ordertime'].iloc[i])[:-2]
+                    code = df['stkcode'].iloc[i]
                     if len(t) < 5:
                         continue
                     trade_time = time.strptime(t, '%H%M%S')  # 解析该记录的用户交易时间
-                    if (trade_time < tim[1]) | (trade_time >= tim[8]):
+                    if (trade_time < tim[1]):
                         if str(1) + way not in res_k.keys():
-                            res_k[str(1) + way] = 1
-                        else:
+                            res_k[str(1) + way] = 0
+                        if (code < 3000000 | code > 399999) & (tim[10] < trade_time < tim[11]):
+                            res_k[str(1) + way] += 1
+                        elif (300000 < code < 399999) & (tim[12] < trade_time < tim[11]):
                             res_k[str(1) + way] += 1
                     elif (trade_time >= tim[1]) & (trade_time < tim[2]):
                         if str(2) + way not in res_k.keys():
@@ -839,28 +852,33 @@ class Users():
                         else:
                             res_k[str(7) + way] += 1
 
-                    elif (trade_time >= tim[9]) & (trade_time < tim[8]) & (df['market'].iloc[i] == 0):  # 此处关于交易市场存在问题！！！！！
-                        if str(9) + way not in res_k.keys():
-                            res_k[str(9) + way] = 1
+                    elif (trade_time >= tim[7]) & (trade_time < tim[8]):
+                        if (trade_time >= tim[9]) & (trade_time < tim[8]) & (df['market'].iloc[i] == 0):
+                            if str(9) + way not in res_k.keys():
+                                res_k[str(9) + way] = 1
+                            else:
+                                res_k[str(9) + way] += 1
                         else:
-                            res_k[str(9) + way] += 1
+                            if str(8) + way not in res_k.keys():
+                                res_k[str(8) + way] = 1
+                            else:
+                                res_k[str(8) + way] += 1
 
                     else:
-                        if str(8) + way not in res_k.keys():
-                            res_k[str(8) + way] = 1
+                        if str(10) + way not in res_k.keys():
+                            res_k[str(10) + way] = 1
                         else:
-                            res_k[str(8) + way] += 1
-                for m in range(9):  # 计算用户的每个交易时间偏好的频率
+                            res_k[str(10) + way] += 1
+                for m in range(len(lb)):  # 计算用户的每个交易时间偏好的频率
                     if str(m + 1) + way not in res_k.keys():
                         res_k[str(m + 1) + way] = 0.000
                     else:
                         res_k[str(m + 1) + way] = float(res_k[str(m + 1) + way]) / float(aln)
             res = pd.DataFrame(columns=list(res_k.keys()))
             res = res.append(res_k, ignore_index=True)
-            resal = res_al.append(res)
+            res_al.append(res)
         res = pd.merge(res_al[0], res_al[1], how="left", on="custid")
         return res.iloc[0]
-
 
     '''
     # 品种偏好
@@ -886,6 +904,7 @@ class Users():
     	return each_kh  # 合并所有用户的结果
 
     '''
+
     # 过度自信
     def get_GDZX_l(self, custid):
         gdzx_dic = {}
@@ -908,7 +927,7 @@ class Users():
                 cjsl = float(cjsl)
                 if zqdm in syl_dict.keys():  # 如果已存在该证券，则证券均值改变，股数改变
                     syl_dict[zqdm][0] = (syl_dict[zqdm][0] * syl_dict[zqdm][1] + cjsl * cjjg) / (
-                    syl_dict[zqdm][1] + cjsl)
+                        syl_dict[zqdm][1] + cjsl)
                     syl_dict[zqdm][1] = syl_dict[zqdm][1] + cjsl
                 else:  # 如果没有该证券，则新建一个字典
                     jy_list = []
@@ -924,7 +943,7 @@ class Users():
                 if zqdm in syl_dict.keys():  # 已经有买入交易
                     jc = cjjg - syl_dict[zqdm][0]
                     syl_dict[zqdm][1] = max(syl_dict[zqdm][1] - cjsl, 0)
-                    syl = jc / max(syl_dict[zqdm][0], 0.01) # 单笔交易的盈利率
+                    syl = jc / max(syl_dict[zqdm][0], 0.01)  # 单笔交易的盈利率
                     list1.append(zqdm)
                     list1.append(wtrq)
                     list1.append(cjrq)
@@ -954,12 +973,13 @@ class Users():
                     mr_zqdm = mr_line['stkcode']
                     mr_zqdm_set.add(mr_zqdm)
                 mr_zqdm_list = list(mr_zqdm_set)
-                mc_mr_zqdm_df = mc_df[(mc_df['stkcode'].isin(mr_zqdm_list)) & (mc_df['orderdate'] > mr_string)]  # 不严谨，有点问题
+                mc_mr_zqdm_df = mc_df[
+                    (mc_df['stkcode'].isin(mr_zqdm_list)) & (mc_df['orderdate'] > mr_string)]  # 不严谨，有点问题
                 weights = []
                 for _, mc in mc_mr_zqdm_df.iterrows():
-                    time_mc =  time.strptime(mc['orderdate'], "%Y%m%d")
+                    time_mc = time.strptime(mc['orderdate'], "%Y%m%d")
                     time_mc = datetime.datetime(time_mc[0], time_mc[1], time_mc[2])
-                    weights.append(1/((time_mc - today_date).days**2))
+                    weights.append(1 / ((time_mc - today_date).days ** 2))
                 weight = np.array(weights)
                 weight = weight / np.sum(weight)
                 mc_mr_syl = np.dot(mc_mr_zqdm_df['syl'], weight)
@@ -1048,13 +1068,14 @@ class Users():
         each_kh["custid"] = int(custid)
         dfn = df.shape[0]
         if dfn == 0:
-            each_kh["lucky"] = -1
+            each_kh["lucky"] = float("nan")
         else:
             suc = float(df[df["bsflag"] == "0T"].shape[0])  # 计算用户在两种业务科目的记录的个数
             all_times = float(df[df["bsflag"] == "0P"].shape[0])
             lucky = self.decay_divide(suc, all_times)
             each_kh["lucky"] = lucky
         return each_kh['lucky']
+
     # 动量策略
     '''def get_DLCL(self, custid, path='datas/industry.csv'):
         user = self.get_logdata(custid)
@@ -1191,7 +1212,7 @@ class Users():
         return res'''
 
     # 分时图偏好问题：无法得到确定时间的5分钟k,该函数只能得到tushare上能爬到的5分钟k数据，所以结果会有问题
-    
+
     def get_FSTPH(self, custid):
         datas = self.logasset
         res_l = []
@@ -1209,10 +1230,10 @@ class Users():
             kh_df = data
             khn = kh_df.shape[0]
             if khn == 0:
-                kh_res["up" + way] = 0.00
-                kh_res["down" + way] = 0.00
-                kh_res["high" + way] = 0.00
-                kh_res["low" + way] = 0.00
+                kh_res["up" + way] = float("nan")
+                kh_res["down" + way] = float("nan")
+                kh_res["high" + way] = float("nan")
+                kh_res["low" + way] = float("nan")
             else:
                 up = 0
                 down = 0
@@ -1221,24 +1242,24 @@ class Users():
                 for kn in range(khn):  # 遍历每个用户的每条记录
                     date_s = kh_df['orderdate'].iloc[kn]
                     time_s = str(kh_df['ordertime'].iloc[kn])
-                    while len(time_s)<8:
-                        time_s = '0'+time_s
+                    while len(time_s) < 8:
+                        time_s = '0' + time_s
                     m = int(time_s[-5])
-                    if m>=5:
+                    if m >= 5:
                         m = '5'
                     else:
                         m = '0'
-                    d1 = datetime.datetime.strptime(str(date_s) + " " + str(time_s)[:-5]+m, '%Y%m%d %H%M')
+                    d1 = datetime.datetime.strptime(str(date_s) + " " + str(time_s)[:-5] + m, '%Y%m%d %H%M')
                     d1 = d1 + datetime.timedelta(days=84)
-                    #d2 = d1 - datetime.timedelta(minutes=5)
+                    # d2 = d1 - datetime.timedelta(minutes=5)
                     d3 = d1 + datetime.timedelta(minutes=5)
                     last_time = d3.strftime('%Y-%m-%d %H:%M')
-                    now_time=d1.strftime('%Y-%m-%d %H:%M')
-                    #pro_time = d2.strftime('%Y-%m-%d %H:%M')
+                    now_time = d1.strftime('%Y-%m-%d %H:%M')
+                    # pro_time = d2.strftime('%Y-%m-%d %H:%M')
                     stkcode = check(kh_df['stkcode'].iloc[kn])
                     try:
-                        df = pd.read_csv('datas/k/'+stkcode+'.csv')
-                        sp = df[df["date"]==now_time].shape[0]
+                        df = pd.read_csv('datas/k/' + stkcode + '.csv')
+                        sp = df[df["date"] == now_time].shape[0]
                     except:
                         continue
 
@@ -1247,7 +1268,7 @@ class Users():
                         print(str(kh_df['stkcode'].iloc[kn]))
                         df.to_csv('datas/k/'+kh_df['stkcode'].iloc[kn]+'.csv')'''
                     if sp > 0:
-                        d = df[df["date"]<last_time]["open"].tail(3)
+                        d = df[df["date"] < last_time]["open"].tail(3)
                         if float(d.iloc[1]) > float(d.iloc[0]):
                             if float(d.iloc[1]) > float(d.iloc[2]):
                                 high += 1
@@ -1255,7 +1276,7 @@ class Users():
                                 up += 1
                         else:
                             if float(d.iloc[1]) < float(d.iloc[0]):
-                                if  (float(d.iloc[0])-float(d.iloc[1]))/float(d.iloc[0])>0.08:
+                                if (float(d.iloc[0]) - float(d.iloc[1])) / float(d.iloc[0]) > 0.08:
                                     low += 1
                                 else:
                                     down += 1
@@ -1277,7 +1298,7 @@ class Users():
         # res_E = pd.DataFrame(columns=['custid', 'XGPH'])
         custids = self.custids
         khhs = set(res_E['custid'])
-        khh = custids-khhs
+        khh = custids - khhs
         print(len(khh))
         for i, kh in enumerate(khh):
             kh_res = {}
@@ -1375,6 +1396,7 @@ class Users():
     	return each_kh
 
     '''
+
     # ST股上分位数
     def get_ST_dict(self, sta=False):
         res_E = pickle.load(open('dict/st_dict', 'rb'))
@@ -1404,10 +1426,11 @@ class Users():
     # ST股偏好
     def get_STPH(self, custid):
         df = self.get_logdata(custid)
+        df = df[df['stkeffect'] > 0]
         all_money = float(df["matchamt"].sum())
         dfn = df.shape[0]
         if dfn == 0:
-            return -1
+            return float("nan")
         else:
             stn = 0.00
             for i in range(dfn):
@@ -1476,7 +1499,7 @@ class Users():
         all_money = max(float(df.loc[:, "matchamt"].sum()), 0.01)
         dfn = df.shape[0]
         if (dfn == 0) or (all_money == 0.00):
-            return -1
+            return float("nan")
         else:
             CX_money = 0.0
             for n in range(dfn):
@@ -1523,13 +1546,13 @@ class Users():
                     stn = 0.00
                     each_kh["custid"] = int(kh)
                     for i in range(dfn):
-                        if s in df['stkname'].iloc[i]:   #如果在判断中出现报错，则将s=u'转债‘改为s="转债“
+                        if s in df['stkname'].iloc[i]:  # 如果在判断中出现报错，则将s=u'转债‘改为s="转债“
                             stn += df['matchamt'].iloc[i]
 
                     each_kh["KZZ"] = float(stn / all_money)
                     res_E = res_E.append(each_kh, ignore_index=True)
 
-            res_B = res_E[res_E["KZZ"] != -1]
+            res_B = res_E[res_E["KZZ"] != float("nan")]
             mean = res_B["KZZ"].mean()
             std = max(res_B["KZZ"].std(), 0.01)
             res_B["KZZ"] = np.asarray(((np.asarray(res_B["KZZ"]) - mean) / std), dtype=np.float)
@@ -1550,7 +1573,7 @@ class Users():
         all_money = float(df.loc[:, "matchamt"].sum())
         dfn = df.shape[0]
         if (dfn == 0) or (all_money == 0.00):
-            return -1
+            return float("nan")
         else:
             stn = 0.00
             for i in range(dfn):
@@ -1559,13 +1582,13 @@ class Users():
             each_kh["KZZ"] = float(stn / all_money)
             return self.decay_divide(stn, all_money)
 
-        # 中小板上分位数
+            # 中小板上分位数
 
     def get_ZXB_sta(self):
         sql = ("select distinct custid, bsflag, matchamt, stkcode, stkeffect "
-                "from tcl_logasset where matchqty > 0 order by orderdate asc")
+               "from tcl_logasset where matchqty > 0 order by orderdate asc")
         ms = self.ms.ExecQuery(sql)
-        datas = pd.DataFrame(ms, columns=["custid", "bsflag", "matchamt", "stkcode","stkeffect"])
+        datas = pd.DataFrame(ms, columns=["custid", "bsflag", "matchamt", "stkcode", "stkeffect"])
 
         if self.Z_flag == 0:
             khh = self.khhs
@@ -1585,7 +1608,7 @@ class Users():
                     each_kh["ZXB"] = float(stn / all_money)
                     res_E = res_E.append(each_kh, ignore_index=True)
 
-            res_B = res_E[res_E["ZXB"] != -1]
+            res_B = res_E[res_E["ZXB"] != float("nan")]
             mean = res_B["ZXB"].mean()
             std = max(res_B["ZXB"].std(), 0.01)
             res_B["ZXB"] = np.asarray(((np.asarray(res_B["ZXB"]) - mean) / std), dtype=np.float)
@@ -1606,7 +1629,7 @@ class Users():
         all_money = float(df.loc[:, "matchamt"].sum())
         dfn = df.shape[0]
         if (dfn == 0) or (all_money == 0.00):
-            return -1
+            return float("nan")
         else:
             stn = 0.00
             for i in range(dfn):
@@ -1617,7 +1640,7 @@ class Users():
     # 永远满仓上分位数
     def get_YYMC_sta(self):
         sql = ("select distinct custid,fundbal,marketvalue,busi_date "
-                "from tcl_fundasset order by busi_date asc")
+               "from tcl_fundasset order by busi_date asc")
         ms = self.ms.ExecQuery(sql)
         datas = pd.DataFrame(ms, columns=["custid", "fundbal", "marketvalue", "busi_date"])
 
@@ -1644,7 +1667,7 @@ class Users():
                     each_kh["YYMC"] = float(bal / float(days))
                     res_E = res_E.append(each_kh, ignore_index=True)
 
-            res_B = res_E[res_E["YYMC"] != -1]
+            res_B = res_E[res_E["YYMC"] != float("nan")]
             mean = res_B["YYMC"].mean()
             std = max(res_B["YYMC"].std(), 0.01)
             res_B["YYMC"] = np.asarray(((np.asarray(res_B["YYMC"]) - mean) / std), dtype=np.float)
@@ -1664,7 +1687,7 @@ class Users():
         each_kh["custid"] = int(custid)
         dfn = df.shape[0]
         if dfn == 0:
-            return -1
+            return float("nan")
         else:
             days = 0
             bal = 0
@@ -1712,7 +1735,7 @@ class Users():
             dfn = data.shape[0]
             each_kh["ZYLQD" + way] = 0.00
             if dfn == 0:
-                each_kh["ZYLQD" + way] = -1
+                each_kh["ZYLQD" + way] = float("nan")
             else:
                 for i in range(dfn):  # 遍历该用户的每条交易记录
                     each_data = data.iloc[i, :]
@@ -1721,11 +1744,10 @@ class Users():
                                      & (BS_list["way"] == way)]
                     each_kh["ZYLQD" + way] += float(record.shape[0])
 
-                each_kh["ZYLQD" + way] = self.decay_divide(float(each_kh["ZYLQD" + way]) , float(dfn))
+                each_kh["ZYLQD" + way] = self.decay_divide(float(each_kh["ZYLQD" + way]), float(dfn))
 
         return each_kh['ZYLQDB'], each_kh['ZYLQDS']
-    
-    
+
     def tor_pref(self, custid):
         return invest_pref(self.logasset, custid, 'daily', 'tor', 3)
 
@@ -1762,13 +1784,14 @@ class Users():
     def concept_pref(self, custid):
         return invest_pref(self.logasset, custid, 'static', 'concept', 99)
 
+
 if __name__ == '__main__':
     database = 'Yichuang'
     log_num = 1
     file = pd.read_excel('selected_behavior_value_label.xlsx')
     users = Users(database=database, endtime='20170915')
     print(file.columns)
-    ad_khhs = set(file.loc[:,0])
+    ad_khhs = set(file.loc[:, 0])
     print(ad_khhs)
     custids = users.custids
     log = fund = stk = pd.DataFrame()
@@ -1784,7 +1807,7 @@ if __name__ == '__main__':
         funddata = users.get_funddata(custid)
 
         stkdata = users.get_stkdata(custid)
-        #print(len(logdata), len(funddata))
+        # print(len(logdata), len(funddata))
         print(i, l)
         log = log.append(logdata, ignore_index=True)
         fund = fund.append(funddata, ignore_index=True)
