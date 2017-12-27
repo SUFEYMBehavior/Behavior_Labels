@@ -216,7 +216,7 @@ class Users():
                     p = data['p_change'].abs().mean()
                     m.append(p)
                 else:
-                    m.append(0)
+                    m.append(float('nan'))
         m = standardize(m)
         flag = [True if x > spl else False for x in m]
         user['flag'] = flag
@@ -364,17 +364,17 @@ class Users():
             zqdm = check(row['stkcode'])
             if zqdm in self.codelist:
                 data = pd.read_csv(self.hist_data + zqdm + '.csv')
-                data = data[(data['date'] >= t1) & (data['date'] <= t2)]
+                data = data[data['date'] <= t2]
 
                 # 取前一个月的历史行情 如果文件中有则取 否则查询
                 if data is None or data.shape[0] == 0:
                     continue
+                data = data.iloc[-1]
                 p_change = data['p_change'].max()
-                q_change = data['p_change'].min()
                 cal_all += 1
                 if p_change >= 9.95 and row['stkeffect'] > 0:
                     cal_num += 1
-                elif q_change <= -9.95 and row['stkeffect'] < 0:
+                elif p_change <= -9.95 and row['stkeffect'] < 0:
                     cal_num += 1
                 custids = [cal_num, cal_all]
         return self.decay_divide(custids[0], custids[1])
@@ -440,6 +440,7 @@ class Users():
     # 止盈止损(输入一个客户号即可得到标签，无需用到所有人的数据）
     def get_ZYZS_l(self, custid):
         user = self.get_logdata(custid)
+
         zy_dict = {}
         zs_dict = {}
         dict = {}
@@ -447,6 +448,11 @@ class Users():
         total_kscjsl = 0
         total_ylv = 0
         total_ksl = 0
+        stk = self.get_stkdata(custid)
+        st_time = user['busi_date'].iloc[0]
+        stk = stk[stk['busidate'] == st_time]
+        for _, row in stk.iterrows():
+            dict[row['stkcode']] = [row['buycost'], row['stkavl']]
         for _, line in user.iterrows():
             zqfss = int(line['stkeffect'])
             cjsl = str(line['matchqty'])
@@ -552,18 +558,20 @@ class Users():
             yesterday_5ma = float(df1.iloc[1]['ma5'])
             today_5ma = float(df1.iloc[0]['ma5'])
             tomarrow_5ma = float(df2.iloc[-2]['ma5'])
-            if zqfss > 0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
-                zgmr_times = zgmr_times + 1
-            elif zqfss > 0 and yesterday_5ma > today_5ma:
-                kdmr_times = kdmr_times + 1
-            elif zqfss > 0 and yesterday_5ma <= today_5ma:
-                kzmr_times = kzmr_times + 1
-            elif zqfss < 0 and yesterday_5ma < today_5ma and tomarrow_5ma > today_5ma:
-                zgmc_times = zgmc_times + 1
-            elif zqfss < 0 and yesterday_5ma > today_5ma:
-                kdmc_times = kdmc_times + 1
-            elif zqfss < 0 and yesterday_5ma <= today_5ma:
-                kzmc_times = kzmc_times + 1
+            if zqfss > 0:
+                if yesterday_5ma < today_5ma and tomarrow_5ma < today_5ma:
+                    zgmr_times += 1
+                elif yesterday_5ma > today_5ma:
+                    kdmr_times += 1
+                else:
+                    kzmr_times += 1
+            elif zqfss < 0:
+                if yesterday_5ma < today_5ma and tomarrow_5ma < today_5ma:
+                    zgmc_times += 1
+                elif yesterday_5ma > today_5ma:
+                    kdmc_times += 1
+                else:
+                    kzmc_times += 1
             total_times = total_times + 1
         zgmr_fre = self.decay_divide(zgmr_times, total_times)
         zgmc_fre = self.decay_divide(zgmc_times, total_times)
@@ -908,6 +916,11 @@ class Users():
         syl_dict = {}
         mr_list = []
         mc_list = []
+        stk = self.get_stkdata(custid)
+        st_time = user['busi_date'].iloc[0]
+        stk = stk[stk['busidate'] == st_time]
+        for _, row in stk.iterrows():
+            syl_dict[row['stkcode']] = [row['buycost'], row['stkavl']]
 
         for _, line in user.iterrows():
             list1 = []
@@ -1617,7 +1630,7 @@ class Users():
     def get_ZXBPH(self, custid):
         df = self.get_logdata(custid)
         df = df[df['stkeffect'] > 0]
-        df = df.dropna(how='any', axis=0)
+        df = df.dropna(how='all', axis=0)
         each_kh = {}
         each_kh["custid"] = int(custid)
         all_money = float(df.loc[:, "matchamt"].sum())
@@ -1675,7 +1688,7 @@ class Users():
     # 永远满仓偏好
     def get_YYMCPH(self, custid):
         df = self.get_funddata(custid)
-        df = df.dropna(how='any', axis=0)
+        df = df.dropna(how='all', axis=0)
 
         each_kh = {}
         each_kh["custid"] = int(custid)

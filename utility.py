@@ -141,7 +141,7 @@ def calculate(tt, label):
 
 def standardize(data):
     s = np.array(data)
-    s = (s-s.mean())/s.std()
+    s = (s-np.nanmean(s))/np.nanstd(s)
     return s
 
 def static_label_name(label):
