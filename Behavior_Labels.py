@@ -7,15 +7,14 @@ from utility import *
 import numpy as np
 import time
 
-
 class Users():
-    def __init__(self, q=0.5, r=0.5, δ=1e-4, database='db_0901', endtime='20170915', threshold=20, fromcsv=False):
+    def __init__(self, q=0.5, r=0.5, δ=1e-4,database='db_0901', endtime='20170915', threshold=20, fromcsv=False):
         self.hist_data = 'hist/'
         self.ed = endtime
         self.Q = q
         self.R = r
         self.δ = δ
-        # ==
+#==
         '''self.X_flag = 0
         self.X_sta = 0.00
         self.S_flag = 0
@@ -75,7 +74,6 @@ class Users():
             return p
         else:
             return p * math.sqrt(cal_all/thre)'''
-
     #
     def get_funddata(self, custid):
 
@@ -94,7 +92,7 @@ class Users():
         self.fundasset = fundasset
         return fundasset
 
-    # fn_timer
+    #fn_timer
 
     def get_logdata(self, custid):
 
@@ -112,7 +110,7 @@ class Users():
                                                   'stkname',
                                                   'matchprice', 'matchamt', 'orderdate', 'ordertime', 'cleardate',
                                                   'market'])
-            # logasset = logasset[(logasset['matchamt'] > 0) & (logasset['matchqty'] > 0) & (logasset['busi_date'] != 0)]
+            #logasset = logasset[(logasset['matchamt'] > 0) & (logasset['matchqty'] > 0) & (logasset['busi_date'] != 0)]
         self.logcustid = custid
         self.logasset = logasset
         return logasset
@@ -181,24 +179,22 @@ class Users():
         fst = self.get_FSTPH(custid)
         att = self.get_ZJLQD(custid)
         hsr = self.high_shares_l(custid)
-        values = [custid, self.abnormals_l(custid), self.hold_concept_var(custid), self.hold_var(custid),
-                  self.holding_float(custid),
+        values = [custid, self.abnormals_l(custid),  self.hold_concept_var(custid), self.hold_var(custid), self.holding_float(custid),
                   self.holdings(custid, self.ed), self.limit_perference(custid), hsr, zyl, zsl,
                   kli[0], kli[1], kli[2], kli[3], kli[4], kli[5],
                   dl['DB'], dl['DS'], dl['WB'], dl['WS'], dl['MB'], dl['MS'],
                   jt['1B'], jt['1S'], jt['2B'], jt['2S'], jt['3B'], jt['3S'], jt['4B'], jt['4S'], jt['5B'], jt['5S'],
                   jt['6B'], jt['6S'], jt['7B'], jt['7S'], jt['8B'], jt['8S'], jt['9B'], jt['9S'],
                   self.get_BDCZ_l(custid), self.bs_operate_l(custid), self.get_XGQK(custid),
-                  fst['highB'], fst['highS'], fst['upB'], fst['upS'], fst['downB'], fst['downS'], fst['lowB'],
-                  fst['lowS'],
-                  self.get_STPH(custid), self.get_CXPH(custid), self.get_KZPH(custid), self.get_ZXBPH(custid),
-                  self.get_YYMCPH(custid),
+                  fst['highB'], fst['highS'], fst['upB'], fst['upS'], fst['downB'], fst['downS'], fst['lowB'], fst['lowS'],
+                  self.get_STPH(custid), self.get_CXPH(custid), self.get_KZPH(custid), self.get_ZXBPH(custid), self.get_YYMCPH(custid),
                   att[0], att[1], self.get_GDZX_l(custid)
                   ]
         return dict(zip(self.labels, values))
 
-    # 异常波动
-    def abnormals_l(self, custid, spl=1):
+
+    #异常波动
+    def abnormals_l(self, custid, spl=1 ):
         m = []
         user = self.get_logdata(custid)
         for i, row in user.iterrows():
@@ -210,7 +206,7 @@ class Users():
             t1 = datetime.datetime.strftime(st_time, '%Y-%m-%d')
             t2 = datetime.datetime.strftime(time, '%Y-%m-%d')
             zqdm = check(row['stkcode'])
-            # 取前一个月的历史行情
+            # 取前一个月的历史行情 
             if not zqdm in self.codelist:
                 m.append(0)
             else:
@@ -231,7 +227,7 @@ class Users():
             abl = dic.iloc[0]
             return self.Q * abl['Q'] + self.R * abl['R']
 
-    # 持仓概念集中度
+    #持仓概念集中度
     def hold_concept_var(self, custid, path='datas/concept.csv'):
         user = self.get_stkdata(custid)
         file = path
@@ -525,6 +521,7 @@ class Users():
                 hyg_dict[custid] = 0
         return hyg_dict'''
 
+    
     # k_line(输入客户号即可返回，不用考虑其他用户)
     def get_Kline_l(self, custid, path='datas/data_Kline'):
         kline_dict = {}
@@ -773,7 +770,6 @@ class Users():
     		res_k[w] = res_w
     	return res_k
     '''
-
     # 交易时间偏好 没有decay
     def get_JYSJ(self, custid):
         datas = self.logasset
@@ -880,6 +876,7 @@ class Users():
         res = pd.merge(res_al[0], res_al[1], how="left", on="custid")
         return res.iloc[0]
 
+
     '''
     # 品种偏好
     def get_PZPH(self, custid):
@@ -904,7 +901,6 @@ class Users():
     	return each_kh  # 合并所有用户的结果
 
     '''
-
     # 过度自信
     def get_GDZX_l(self, custid):
         gdzx_dic = {}
@@ -1075,7 +1071,6 @@ class Users():
             lucky = self.decay_divide(suc, all_times)
             each_kh["lucky"] = lucky
         return each_kh['lucky']
-
     # 动量策略
     '''def get_DLCL(self, custid, path='datas/industry.csv'):
         user = self.get_logdata(custid)
@@ -1288,7 +1283,7 @@ class Users():
                 kh_res["low" + way] = self.decay_divide(low, khn)
             res_E = pd.DataFrame(columns=list(kh_res.keys()))
             res_E = res_E.append(kh_res, ignore_index=True)
-            resl = res_l.append(res_E)
+            res_l = res_l.append(res_E)
         res = pd.merge(res_l[0], res_l[1], how="left", on="custid")
         return res.iloc[0]
 
@@ -1396,7 +1391,6 @@ class Users():
     	return each_kh
 
     '''
-
     # ST股上分位数
     def get_ST_dict(self, sta=False):
         res_E = pickle.load(open('dict/st_dict', 'rb'))
@@ -1546,7 +1540,7 @@ class Users():
                     stn = 0.00
                     each_kh["custid"] = int(kh)
                     for i in range(dfn):
-                        if s in df['stkname'].iloc[i]:  # 如果在判断中出现报错，则将s=u'转债‘改为s="转债“
+                        if s in df['stkname'].iloc[i]:   #如果在判断中出现报错，则将s=u'转债‘改为s="转债“
                             stn += df['matchamt'].iloc[i]
 
                     each_kh["KZZ"] = float(stn / all_money)
@@ -1582,13 +1576,13 @@ class Users():
             each_kh["KZZ"] = float(stn / all_money)
             return self.decay_divide(stn, all_money)
 
-            # 中小板上分位数
+        # 中小板上分位数
 
     def get_ZXB_sta(self):
         sql = ("select distinct custid, bsflag, matchamt, stkcode, stkeffect "
-               "from tcl_logasset where matchqty > 0 order by orderdate asc")
+                "from tcl_logasset where matchqty > 0 order by orderdate asc")
         ms = self.ms.ExecQuery(sql)
-        datas = pd.DataFrame(ms, columns=["custid", "bsflag", "matchamt", "stkcode", "stkeffect"])
+        datas = pd.DataFrame(ms, columns=["custid", "bsflag", "matchamt", "stkcode","stkeffect"])
 
         if self.Z_flag == 0:
             khh = self.khhs
@@ -1784,14 +1778,13 @@ class Users():
     def concept_pref(self, custid):
         return invest_pref(self.logasset, custid, 'static', 'concept', 99)
 
-
 if __name__ == '__main__':
     database = 'Yichuang'
     log_num = 1
     file = pd.read_excel('selected_behavior_value_label.xlsx')
     users = Users(database=database, endtime='20170915')
     print(file.columns)
-    ad_khhs = set(file.loc[:, 0])
+    ad_khhs = set(file.loc[:,0])
     print(ad_khhs)
     custids = users.custids
     log = fund = stk = pd.DataFrame()
@@ -1807,7 +1800,7 @@ if __name__ == '__main__':
         funddata = users.get_funddata(custid)
 
         stkdata = users.get_stkdata(custid)
-        # print(len(logdata), len(funddata))
+        #print(len(logdata), len(funddata))
         print(i, l)
         log = log.append(logdata, ignore_index=True)
         fund = fund.append(funddata, ignore_index=True)
