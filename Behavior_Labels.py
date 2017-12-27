@@ -450,9 +450,10 @@ class Users():
         total_ksl = 0
         stk = self.get_stkdata(custid)
         st_time = user['busi_date'].iloc[0]
-        stk = stk[stk['busidate'] == st_time]
+        last_time = stk[stk['busidate'] < st_time]['busidate'].iloc[-1]
+        stk = stk[stk['busi_date' == last_time]]
         for _, row in stk.iterrows():
-            dict[row['stkcode']] = [row['buycost'], row['stkavl']]
+            dict[row['stkcode']] = [row['buycost'] / row['stkavl'], row['stkavl']]
         for _, line in user.iterrows():
             zqfss = int(line['stkeffect'])
             cjsl = str(line['matchqty'])
@@ -918,9 +919,10 @@ class Users():
         mc_list = []
         stk = self.get_stkdata(custid)
         st_time = user['busi_date'].iloc[0]
-        stk = stk[stk['busidate'] == st_time]
+        last_time = stk[stk['busidate'] < st_time]['busidate'].iloc[-1]
+        stk = stk[stk['busi_date' == last_time]]
         for _, row in stk.iterrows():
-            syl_dict[row['stkcode']] = [row['buycost'], row['stkavl']]
+            syl_dict[row['stkcode']] = [row['buycost']/row['stkavl'], row['stkavl']]
 
         for _, line in user.iterrows():
             list1 = []
