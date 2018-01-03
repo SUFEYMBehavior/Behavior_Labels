@@ -1,5 +1,4 @@
 # -*- coding=utf-8 -*-
-import tushare as ts
 import pandas as pd
 import datetime
 import pickle
@@ -25,8 +24,9 @@ class Users():
         self.K_sta = 0.00'''
         self.fromcsv = fromcsv
         self.threshold = threshold
-        self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
-        if self.fromcsv == True:
+
+        if self.fromcsv == False:
+            self.ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db=database)
             custids_df = pd.DataFrame(self.ms.ExecQuery('select distinct custid from tcl_logasset'), columns=['custid'])
             self.custids = set(custids_df['custid'])
         self.blacklist = set('204001')
@@ -124,10 +124,10 @@ class Users():
             stkasset = df[df['custid'] == int(custid)]
         else:
             log = self.ms.ExecQuery(
-                "select distinct custid, stkcode, busi_date, stkbal, stklastbal from tcl_stkasset "
+                "select distinct custid, stkcode, busi_date, stkbal, stklastbal, buycost from tcl_stkasset "
                 "where custid = %s "
                 "order by busi_date ASC " % str(custid))
-            stkasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'stkbal', 'stklastbal'])
+            stkasset = pd.DataFrame(log, columns=['custid', 'stkcode', 'busi_date', 'stkbal', 'stklastbal', 'buycost'])
         self.stkcustid = custid
         self.stkasset = stkasset
         return stkasset
@@ -177,7 +177,7 @@ class Users():
         dl = self.get_DLCL2(custid)
         jt = self.get_JYSJ(custid)
         fst = self.get_FSTPH(custid)
-        att = self.get_ZJLQD(custid)
+        att = self.get_ZYLQD(custid)
         hsr = self.high_shares_l(custid)
         values = [custid, self.abnormals_l(custid),  self.hold_concept_var(custid), self.hold_var(custid), self.holding_float(custid),
                   self.holdings(custid, self.ed), self.limit_perference(custid), hsr, zyl, zsl,
@@ -226,6 +226,40 @@ class Users():
         else:
             abl = dic.iloc[0]
             return self.Q * abl['Q'] + self.R * abl['R']
+
+
+    def abnormal(self, custid, spl=1):
+        m = []
+        user = self.get_logdata(custid)
+        l = user.shape[0]
+        for i, row in user.iterrows():
+            t2 = str(row["busi_date"])
+            if len(t2) != 8:
+                continue
+            time = datetime.datetime.strptime(t2, '%Y%m%d')
+            st_time = time - datetime.timedelta(days=30)
+            t1 = datetime.datetime.strftime(st_time, '%Y-%m-%d')
+            t2 = datetime.datetime.strftime(time, '%Y-%m-%d')
+            zqdm = check(row['stkcode'])
+            # 取前一个月的历史行情
+            if not zqdm in self.codelist:
+                m.append(0)
+            else:
+                data = pd.read_csv(self.hist_data + zqdm + '.csv')
+                data = data[(data['date'] >= t1) & (data['date'] <= t2)]
+                if data is not None and len(data['p_change']) > 0:
+                    p = data['p_change'].abs().mean()
+                    m.append(p)
+                else:
+                    m.append(float('nan'))
+        m = standardize(m)
+        flag = [True if x > spl else False for x in m]
+        user['flag'] = flag
+        valid = user[user['flag']]
+        user_B = self.decay_divide(valid[valid['stkeffect'] > 0].shape[0],l)
+        user_S = self.decay_divide(valid[valid['stkeffect'] < 0].shape[0],l)
+        return {'B':user_B, 'S':user_S}
+
 
     #持仓概念集中度
     def hold_concept_var(self, custid, path='datas/concept.csv'):
@@ -450,8 +484,8 @@ class Users():
         total_ksl = 0
         stk = self.get_stkdata(custid)
         st_time = user['busi_date'].iloc[0]
-        last_time = stk[stk['busidate'] < st_time]['busidate'].iloc[-1]
-        stk = stk[stk['busi_date' == last_time]]
+        last_time = stk[stk['busi_date'] < st_time]['busi_date'].iloc[-1]
+        stk = stk[stk['busi_date'] == last_time]
         for _, row in stk.iterrows():
             dict[row['stkcode']] = [row['buycost'] / row['stkavl'], row['stkavl']]
         for _, line in user.iterrows():
@@ -920,7 +954,7 @@ class Users():
         stk = self.get_stkdata(custid)
         st_time = user['busi_date'].iloc[0]
         last_time = stk[stk['busidate'] < st_time]['busidate'].iloc[-1]
-        stk = stk[stk['busi_date' == last_time]]
+        stk = stk[stk['busi_date'] == last_time]
         for _, row in stk.iterrows():
             syl_dict[row['stkcode']] = [row['buycost']/row['stkavl'], row['stkavl']]
 
@@ -1726,7 +1760,7 @@ class Users():
         return each_kh'''
 
     # 注意力驱动偏好
-    def get_ZJLQD(self, custid):
+    def get_ZYLQD(self, custid):
         df = self.get_logdata(custid)
         df = df.dropna(how='any', axis=0)
         BS_list = pd.read_csv("datas/BS_list.csv")
