@@ -32,16 +32,17 @@ if __name__ == '__main__':
         log = users.get_logdata(custid)
         if len(log)<1:
             continue
-        '''list = get_labels(users, custid)
+        list = get_labels(users, custid)
         print(list)
+        '''
         dic = users.get_labels(custid)
         print(dic)'''
 
-        lb = users.get_labels(custid)
+        # lb = users.get_labels(custid)
         #if log>log_num:
         #    dic = users.get_GDZX_l(custid)
-        i += 1
-        ad = ad.append(abn, ignore_index=True)
-        print(i)
+        # i += 1
+        # ad = ad.append(abn, ignore_index=True)
+        # print(i)
     print((time.time() - st) / i)
     ad = ad.to_csv('abnormals.csv',index=False)
