@@ -3,9 +3,11 @@
 @author: Antastsy
 @time: 18-1-2 
 """
-from utility import MSSQL
+import pandas
+from Behavior_Labels import Users
 if __name__ == '__main__':
-    ms = MSSQL(host="localhost", user="SA", pwd="!@Cxy7300", db='a')
-    sl = ms.ExecQuery("select * from a")
-    print(sl)
-    pass
+    users = Users(database='test', endtime='20171026', fromcsv=False)
+    custids = pandas.read_csv('datas/custid.csv')
+
+    for custid in set(custids['custid']):
+        users.get_logdata(custid)
