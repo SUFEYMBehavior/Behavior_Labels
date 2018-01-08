@@ -22,7 +22,8 @@ if __name__ == '__main__':
     users = Users(database=database, endtime='20171026', fromcsv=True)
     ad_khhs = set(file['FUNDSACCOUNT'])
 
-    df = ad = pd.DataFrame(columns=users.labels)
+    df = pd.DataFrame(columns=users.labels)
+    ad = pd.DataFrame()
     #print(len(custids))
     st = time.time()
     i = 0
@@ -33,12 +34,15 @@ if __name__ == '__main__':
             continue
         list = get_labels(users, custid)
         print(list)
+        '''
         dic = users.get_labels(custid)
-        print(dic)
+        print(dic)'''
+
+        # lb = users.get_labels(custid)
         #if log>log_num:
         #    dic = users.get_GDZX_l(custid)
-        i += 1
-
-        print(i)
+        # i += 1
+        # ad = ad.append(abn, ignore_index=True)
+        # print(i)
     print((time.time() - st) / i)
-    ad = ad.to_csv('advanced_users_noindex.csv',index=False)
+    ad = ad.to_csv('abnormals.csv',index=False)

@@ -4,6 +4,8 @@ import numpy as np
 import datetime
 import time as tm
 import csv
+import statsmodels.api as sm
+import talib
 from utility import *
 # 静态分类查询
 
@@ -132,6 +134,88 @@ def pattern_op(df, stock, name, type):
         return [pa_op, pall_op]
 
 
+# 调仓
+def holdings_adjust(df, khh):
+    df = df[df["custid"] == khh].sort_values(by="busi_date")
+    holdings = []
+    times = np.unique(np.asarray(df["busi_date"]))
+    index = 0
+    for _, row in df.iterrows():
+        if index == len(df) - 1:
+            holdings.append(row["marketvalue"] / (row["marketvalue"] + row["fundbal"] + 0.0001))
+        else:
+            num = (int2date(times[index+1]) - int2date(times[index])).days
+            for i in range(num):
+                holdings.append(row["marketvalue"] / (row["marketvalue"] + row["fundbal"] + 0.0001))
+        index += 1
+    var = np.asarray(holdings).var()
+    return [var]
+
+
+# 操作频率
+def get_CZPL(df, khh):
+    df = df[df["custid"] == khh].sort_values(by="busi_date")
+    times = np.unique(np.asarray(df["busi_date"]))
+    if len(times) == 1:
+        return [0, 0]    # 待定
+    else:
+        days = float((int2date(times[-1]) - int2date(times[0])).days)
+        df = df[df["matchqty"] > 0]
+        df_buy = df[df["stkeffect"] > 0]
+        df_sell = df[df["stkeffect"] < 0]
+        return [len(df_buy) / days, len(df_sell) / days]
+
+
+# 趋势
+def holdings_trend(df, khh):
+    df = df[df["custid"] == khh].sort_values(by="busi_date")
+    stocks = np.unique(np.asarray(df["stkcode"]))
+    times = np.unique(np.asarray(df["busi_date"]))
+    start_time = int2date(times[0])
+    end_time = int2date(times[-1])
+    sequence = [[] for j in range(len(stocks))]
+    for stock_index, stock in enumerate(stocks):
+        temp = df[df["stkcode"] == stock]
+        times_temp = np.unique(np.asarray(temp["busi_date"]))
+        time_index = 0
+        # 只有一行考虑
+        for _, row in temp.iterrows():
+            time_temp = int2date(row["busi_date"])
+            if time_index == 0:
+                if time_temp > start_time:
+                    num = (time_temp - start_time).days
+                    for i in range(num):
+                        sequence[stock_index].append(row["stklastbal"])
+            else:
+                num = (int2date(times_temp[time_index]) - int2date(times_temp[time_index - 1])).days
+                for i in range(num):
+                    sequence[stock_index].append(row["stklastbal"])
+            if time_index == len(temp) - 1:
+                num = (end_time - time_temp).days + 1
+                for i in range(num):
+                    sequence[stock_index].append(row["stkbal"])
+            time_index += 1
+    sequence_trans = np.asarray(sequence).transpose()
+    sequence_var = []
+    for sequence_panel in sequence_trans:
+        sequence_panel = np.asarray([float(value)/sum(sequence_panel) for value in sequence_panel if not value == 0])
+        sequence_var.append(sequence_panel.var())
+    return sequence_var
+
+
+def ols(sequence):
+    X = np.asarray([i+1 for i in range(len(sequence))])
+    y = np.asarray(sequence)
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X)
+    results = model.fit()
+    p_value = results.t_test([0,1]).pvalue
+    trend = results.params[1]
+    if math.isnan(trend):
+        trend = 0
+    return [trend, p_value < 0.05]
+
+
 def tor_pref(df, khh):
     return invest_pref(df, khh, 'daily', 'tor', 3)
 
@@ -208,6 +292,8 @@ def company_pref(df, khh):
 @fn_timer
 def get_labels(users, custid):
     logasset = users.get_logdata(custid)
+    fundasset = users.get_funddata(custid)
+    stkasset = users.get_stkdata(custid)
     user = logasset
     khh = custid
     dic = {}
@@ -225,11 +311,21 @@ def get_labels(users, custid):
     temp_list.append(tor_pref(user, khh))
     temp_list.append(op_pref(user, khh))
     temp_list.append(top_pref(user, khh))
+    temp_list.append(macd_pref(user, khh))
+    temp_list.append(kdj_pref(user, khh))
+    temp_list.append(pattern_pref(user, khh))
+    temp_list.append(get_CZPL(user, khh))
+    temp_list.append(holdings_adjust(fundasset, khh))
+    trend = holdings_trend(stkasset, khh)
+    if len(trend) > 5:
+        temp_list.append(ols(trend))
+    else:
+        temp_list.append([-1, -1])
     #temp_list.append(macd_pref(user, khh))
     #temp_list.append(kdj_pref(user, khh))
     #temp_list.append(pattern_pref(user, khh))
-
-    return temp_list
+    list_flat = [j for i in temp_list for j in i]
+    return dict(zip(labels_name_part, list_flat))
 
 '''
 user = pd.read_csv("logasset_all_good.csv", dtype={'stkcode': 'S6'})[["busi_date", "custid", "stkeffect", "matchqty", "matchprice", "stkcode", "matchamt"]].drop_duplicates()
